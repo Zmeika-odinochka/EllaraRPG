@@ -19,6 +19,9 @@ func _physics_process(_delta: float) -> void:
 			facing = Vector2(0, signf(direction.y))
 	move_and_slide()
 	appearance.facing = facing
+	if appearance.attack_time >= 0.0 and appearance.attack_time < 0.34:
+		var aim: Vector2 = appearance.attack_direction
+		appearance.facing = Vector2(signf(aim.x),0) if absf(aim.x)>absf(aim.y) else Vector2(0,signf(aim.y))
 	appearance.walking = velocity.length_squared() > 1.0
 
 

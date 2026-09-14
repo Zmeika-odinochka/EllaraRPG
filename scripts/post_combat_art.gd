@@ -12,7 +12,7 @@ func _draw() -> void:
 	if effects_only:
 		if ground_only: draw_warning()
 		else:
-			draw_swing()
+			draw_hit_contact()
 			draw_damage_numbers()
 		return
 	if combat.phase == "cleared":
@@ -70,26 +70,10 @@ func draw_warning() -> void:
 			var distance: float = 10+combat.phase_time/combat.WINDUP*22
 			pixel(center+direction*distance-Vector2(1,1),Vector2(3,3),"efd8aa")
 
-func draw_swing() -> void:
-	if combat.swing_time>0.18:
-		var progress: float = clampf((0.5-combat.swing_time)/0.32,0,1)
-		var origin: Vector2 = combat.player.position+Vector2(0,-14)
-		if combat.swing_weapon == "":
-			var reach := 10.0+22.0*sin(progress*PI)
-			var fist: Vector2 = (origin+combat.swing_direction*reach).round()
-			draw_line(origin,(fist-combat.swing_direction*3).round(),Color("648892"),5)
-			pixel(fist-Vector2(3,3),Vector2(6,6),"d7a77f")
-			pixel(fist-Vector2(2,3),Vector2(4,2),"f3cc9d")
-			return
-		var direction: Vector2 = combat.swing_direction.rotated(-1.0+progress*2.0)
-		var hand := (origin+direction*12).round()
-		var tip := (origin+direction*28).round()
-		draw_line(hand,tip,Color("243332"),5)
-		draw_line(hand,tip,Color("c7cec0"),3)
-		draw_line(hand,(hand+direction*6).round(),Color("87603d"),3)
-		var cross := direction.orthogonal()*3
-		draw_line((hand+direction*7-cross).round(),(hand+direction*7+cross).round(),Color("c1a876"),2)
-		if combat.swing_time<0.38:
-			for i in range(9):
-				var point: Vector2 = combat.player.position+combat.swing_direction.rotated(-0.95+i*0.24)*combat.ATTACK_RANGE+Vector2(0,-6)
-				pixel(point,Vector2(2,2),"ced2b7")
+func draw_hit_contact() -> void:
+	# Four quiet contact pixels only on a confirmed hit, never a giant weapon arc.
+	for hit in combat.damage_numbers:
+		if float(hit.age)>0.09: continue
+		var at: Vector2 = hit.at+Vector2(0,-16)
+		for direction in [Vector2(-1,-1),Vector2(1,-1),Vector2(-1,1),Vector2(1,1)]:
+			draw_line((at+direction*3).round(),(at+direction*5).round(),Color("eddfbc"),1)

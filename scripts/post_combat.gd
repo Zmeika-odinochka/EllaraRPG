@@ -189,6 +189,7 @@ func start_swing(target: Vector2) -> bool:
 
 func cancel_swing() -> void:
 	swing_time = 0.0
+	player.appearance.attack_time = -1.0
 	swing_resolved = true
 	rearm_time = 0.2
 
@@ -217,6 +218,9 @@ func _physics_process(delta: float) -> void:
 				resolve_swing()
 		player.combat_movement_scale = 0.55 if swing_time > 0.18 else 1.0
 		if not defeated and phase != "cleared": tick_enemy(delta)
+	player.appearance.attack_time = 0.5-swing_time if swing_time > 0 else -1.0
+	player.appearance.attack_direction = swing_direction
+	player.appearance.attack_weapon = swing_weapon
 	player.appearance.modulate = Color("ffb49e") if player_flash > 0 else Color.WHITE
 	var near: bool = player.position.distance_to(HOME) < 205 and phase != "cleared"
 	hud.visible = not is_blocked and not defeated and (near or engaged)
