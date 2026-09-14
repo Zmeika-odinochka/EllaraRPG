@@ -2,9 +2,17 @@ extends Node
 ## Prototype session state. No writes to the role-playing campaign or disk saves.
 
 signal quest_changed
-enum QuestStage { AVAILABLE, ACCEPTED, MET_CORVIN }
+enum QuestStage { AVAILABLE, ACCEPTED, MET_CORVIN, WORK_DONE, APPROVED, COMPLETED }
+const REWARD: int = 18
+const WORK_STEPS := {
+	"planks": "Разобрать доски",
+	"goods": "Расставить товар",
+	"canopy": "Закрепить навес",
+}
 var quest_stage: QuestStage = QuestStage.AVAILABLE
 var pending_spawn: Vector2 = Vector2.INF
+var completed_steps: Array[String] = []
+var personal_coins: int = 0
 
 
 func _ready() -> void:
@@ -37,11 +45,49 @@ func meet_corvin() -> void:
 	quest_changed.emit()
 
 
+func finish_work(step_id: String) -> bool:
+	if quest_stage != QuestStage.MET_CORVIN or not WORK_STEPS.has(step_id) or step_id in completed_steps:
+		return false
+	completed_steps.append(step_id)
+	if completed_steps.size() == WORK_STEPS.size():
+		quest_stage = QuestStage.WORK_DONE
+	quest_changed.emit()
+	return true
+
+
+func approve_work() -> void:
+	if quest_stage != QuestStage.WORK_DONE:
+		return
+	quest_stage = QuestStage.APPROVED
+	quest_changed.emit()
+
+
+func claim_reward() -> void:
+	if quest_stage != QuestStage.APPROVED:
+		return
+	quest_stage = QuestStage.COMPLETED
+	personal_coins += REWARD
+	quest_changed.emit()
+
+
+func work_checklist() -> String:
+	var lines: PackedStringArray = []
+	for step_id in WORK_STEPS:
+		lines.append(("✓ " if step_id in completed_steps else "• ") + WORK_STEPS[step_id])
+	return "\n".join(lines)
+
+
 func objective() -> String:
 	match quest_stage:
 		QuestStage.AVAILABLE:
 			return "Поговорить с Мирой о работе"
 		QuestStage.ACCEPTED:
 			return "Найти Корвина на центральной площади"
+		QuestStage.MET_CORVIN:
+			return "Подготовить площадь: %d / 3" % completed_steps.size()
+		QuestStage.WORK_DONE:
+			return "Сдать работу Корвину"
+		QuestStage.APPROVED:
+			return "Получить 18 медяков у Миры"
 		_:
-			return "Встреча с Корвином состоялась"
+			return "Поручение выполнено · Получено 18 медяков"

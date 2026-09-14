@@ -97,31 +97,49 @@ func _ready() -> void:
 
 
 func refresh() -> void:
-	var available: bool = state.quest_stage == state.QuestStage.AVAILABLE
-	var met_corvin: bool = state.quest_stage == state.QuestStage.MET_CORVIN
-	accept_button.visible = mode == "mira" and available
-	close_button.text = "Отказаться · Esc" if accept_button.visible else "Закрыть · Esc"
+	var phase: int = state.quest_stage
+	var available: bool = phase == state.QuestStage.AVAILABLE
+	accept_button.hide()
+	accept_button.text = "Принять"
+	close_button.text = "Закрыть · Esc"
 	title_label.text = "Подготовка ярмарки"
-	detail_label.text = "Награда: 18 медяков группе.\nСрок: до начала завтрашней ярмарки.\nРасчёт: в гильдии после подписи Корвина."
-	status_label.text = "Задание ещё не принято" if available else "Принято · " + state.objective()
+	detail_label.text = "Награда: 18 медяков лично тебе.\nСрок: до начала завтрашней ярмарки.\nРасчёт: у Миры после подписи Корвина."
+	status_label.text = "Задание ещё не принято" if available else state.objective()
 	match mode:
 		"mira":
 			speaker_label.text = "МИРА / ГИЛЬДИЯ ЭЛЬГАРДА"
 			if available:
-				body_label.text = "«На площади нужны руки. Если берёшься, найди Корвина — он определит работу на месте»."
-			elif met_corvin:
-				body_label.text = "«С Корвином уже поговорил? За расчётом приходи с его подписью после работы»."
+				body_label.text = "«Есть работа на площади для одного человека. Если берёшься, найди Корвина — он объяснит, что сделать»."
+				accept_button.show()
+				close_button.text = "Отказаться · Esc"
+			elif phase == state.QuestStage.ACCEPTED:
+				body_label.text = "«Записала поручение за тобой. Корвин у торговых навесов на площади. Выход — внизу зала»."
+			elif phase == state.QuestStage.APPROVED:
+				body_label.text = "«Вижу подпись Корвина. Работа принята — можешь получить свои восемнадцать медяков»."
+				detail_label.text = "Поручение выполнено лично тобой.\nК выплате: 18 медяков."
+				accept_button.text = "Получить 18 медяков"
+				accept_button.show()
+			elif phase == state.QuestStage.COMPLETED:
+				body_label.text = "«Расчёт закрыт. Спасибо за работу — с тобой можно иметь дело»."
+				detail_label.text = "Награда получена: 18 медяков.\nВ твоём кошельке: %d." % state.personal_coins
+				status_label.text = "Поручение завершено"
 			else:
-				body_label.text = "«Записала поручение за вами. Корвин у торговых навесов на площади. Выход — внизу зала»."
+				body_label.text = "«За расчётом приходи после приёмки. Корвин должен проверить твою работу и поставить подпись»."
 		"journal":
 			speaker_label.text = "ЖУРНАЛ ЗАДАНИЙ / J"
 			if available:
 				title_label.text = "Пока нет заданий"
 				body_label.text = "Мира у стойки гильдии подскажет, где нужна помощь."
-				detail_label.text = "Поговорите с ней и выберите «Принять», чтобы добавить поручение в журнал."
+				detail_label.text = "Поговори с ней и выбери «Принять», чтобы добавить поручение в журнал."
 				status_label.text = "Активных заданий: 0"
+			elif phase == state.QuestStage.COMPLETED:
+				body_label.text = "Ты подготовил площадь, сдал работу Корвину и получил оплату у Миры."
+				detail_label.text = "Получено лично: 18 медяков.\nКошелёк: %d медяков." % state.personal_coins
+				status_label.text = "Активных: 0 · Завершённых: 1"
 			else:
-				body_label.text = "Помочь с подготовкой центральной площади. Объём работ определяет Корвин."
+				body_label.text = "Личное поручение: помочь с подготовкой центральной площади."
+				if phase >= state.QuestStage.MET_CORVIN:
+					detail_label.text = state.work_checklist() + "\nНаграда: 18 медяков лично тебе."
 				status_label.text = "Активных заданий: 1\n" + state.objective()
 		"corvin":
 			speaker_label.text = "КОРВИН / РАСПОРЯДИТЕЛЬ ЯРМАРКИ"
@@ -129,16 +147,37 @@ func refresh() -> void:
 				title_label.text = "Ищешь работу?"
 				body_label.text = "«Сначала зайди к Мире в гильдию. Она оформит поручение, потом возвращайся ко мне»."
 				detail_label.text = "Гильдия — здание слева от площади."
+			elif phase == state.QuestStage.MET_CORVIN:
+				body_label.text = "«Разбери доски у бочек, расставь товар на синем прилавке и закрепи красный навес. Потом позови меня на проверку»."
+				detail_label.text = state.work_checklist()
+				status_label.text = "Готово: %d / 3 · Награда ещё не получена" % state.completed_steps.size()
+			elif phase == state.QuestStage.WORK_DONE:
+				body_label.text = "«Всё подготовил? Давай проверю доски, товар и крепление навеса»."
+				detail_label.text = state.work_checklist()
+				accept_button.text = "Сдать работу"
+				accept_button.show()
+				status_label.text = "Работа сделана · Ожидает приёмки"
+			elif phase == state.QuestStage.APPROVED:
+				body_label.text = "«Порядок. Доски сложены, товар на месте, навес закреплён. Подписываю поручение — отнеси его Мире»."
+				detail_label.text = "Подпись Корвина получена.\nЗа 18 медяками вернись в гильдию."
+				status_label.text = "Принято Корвином · Награда ещё не получена"
 			else:
-				body_label.text = "«От Миры? Хорошо. Работы хватает — сначала согласуем, за что вы возьмётесь»."
-				detail_label.text = "Вы нашли Корвина. Подготовка ярмарки продолжится в следующем этапе игры."
-				status_label.text = "Встреча отмечена в журнале · Награда ещё не получена"
+				body_label.text = "«Твою работу я уже принял. Хорошо справился»."
+				detail_label.text = "Поручение завершено.\n18 медяков уже выплачены Мирой."
+				status_label.text = "Расчёт закрыт"
 
 
 func _accept() -> void:
-	if is_open and mode == "mira" and state.quest_stage == state.QuestStage.AVAILABLE:
-		state.accept_quest()
-		close_button.grab_focus()
+	if not is_open:
+		return
+	if mode == "mira":
+		if state.quest_stage == state.QuestStage.AVAILABLE:
+			state.accept_quest()
+		elif state.quest_stage == state.QuestStage.APPROVED:
+			state.claim_reward()
+	elif mode == "corvin":
+		state.approve_work()
+	close_button.grab_focus()
 
 
 func open(context: String = "mira") -> void:

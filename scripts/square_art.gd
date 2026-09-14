@@ -1,6 +1,7 @@
 @tool
 extends Node2D
 ## Temporary original outdoor art for the quest prototype.
+var completed_steps: Array[String] = []
 
 
 func rect(x: float, y: float, w: float, h: float, color: String) -> void:
@@ -66,8 +67,13 @@ func _draw() -> void:
 	rect(382, 294, 4, 7, "b0ccbc")
 	# Work materials beside the stalls.
 	for y in range(371, 401, 6):
-		rect(539, y, 84, 4, "996d46")
-		rect(540, y, 80, 1, "c29a64")
+		var offset: int = 0 if "planks" in completed_steps else (int(y) % 3 - 1) * 5
+		rect(539 + offset, y, 84, 4, "996d46")
+		rect(540 + offset, y, 80, 1, "c29a64")
+	if "canopy" in completed_steps:
+		rect(691, 145, 3, 48, "d3c394")
+		rect(688, 182, 9, 3, "c5a373")
+		rect(692, 191, 3, 6, "5d503b")
 
 
 func stall(x: int, base: String, light: String) -> void:
@@ -81,5 +87,6 @@ func stall(x: int, base: String, light: String) -> void:
 	rect(x + 1, 165, 119, 7, "c3945f")
 	rect(x + 6, 172, 109, 17, "8d6546")
 	for bx in [16, 43, 78]:
-		rect(x + bx, 155, 18, 10, "8b8450")
-		rect(x + bx + 2, 153, 14, 3, "b0ab70")
+		var offset: int = 0 if x != 405 or "goods" in completed_steps else (bx % 3) * 4
+		rect(x + bx, 155 - offset, 18, 10, "8b8450")
+		rect(x + bx + 2, 153 - offset, 14, 3, "b0ab70")

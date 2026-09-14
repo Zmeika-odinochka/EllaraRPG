@@ -8,6 +8,9 @@ var dialogue: CanvasLayer
 var prompt: Label
 var portal_prompt: Label
 var objective_label: Label
+var wallet_label: Label
+var activity_label: Label
+var busy: bool = false
 var near_npc: bool = false
 var near_portal: bool = false
 var transitioning: bool = false
@@ -91,11 +94,17 @@ func build_hud() -> void:
 	help.add_theme_constant_override("shadow_offset_y", 1)
 	layer.add_child(help)
 	var badge := Label.new()
-	badge.text = "ПРОТОТИП  /  02"
+	badge.text = "ПРОТОТИП  /  03"
 	badge.position = Vector2(513, 16)
 	badge.add_theme_font_size_override("font_size", 11)
 	badge.modulate = Color("d3c19c")
 	layer.add_child(badge)
+	wallet_label = Label.new()
+	wallet_label.position = Vector2(482, 37)
+	wallet_label.add_theme_font_size_override("font_size", 12)
+	wallet_label.add_theme_color_override("font_color", Color("f3dfb5"))
+	wallet_label.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "a98d59", 4))
+	layer.add_child(wallet_label)
 	prompt = Label.new()
 	prompt.name = "NpcPrompt"
 	prompt.text = "E · " + npc_name
@@ -120,11 +129,18 @@ func build_hud() -> void:
 	objective_label.add_theme_color_override("font_color", Color("fff0cc"))
 	objective_label.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "a98d59", 4))
 	layer.add_child(objective_label)
+	activity_label = Label.new()
+	activity_label.position = Vector2(14, 316)
+	activity_label.add_theme_font_size_override("font_size", 12)
+	activity_label.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "a98d59", 4))
+	activity_label.hide()
+	layer.add_child(activity_label)
 	refresh_objective()
 
 
 func refresh_objective() -> void:
 	objective_label.text = "J · " + state.objective()
+	wallet_label.text = "Медяки: %d" % state.personal_coins
 
 
 func npc_is_reachable() -> bool:
@@ -134,12 +150,12 @@ func npc_is_reachable() -> bool:
 func _process(_delta: float) -> void:
 	near_npc = npc_is_reachable()
 	near_portal = player.position.distance_to(portal_point) <= 27.0
-	prompt.visible = near_npc and not dialogue.is_open and not transitioning
-	portal_prompt.visible = near_portal and not dialogue.is_open and not transitioning
+	prompt.visible = near_npc and not dialogue.is_open and not transitioning and not busy
+	portal_prompt.visible = near_portal and not dialogue.is_open and not transitioning and not busy
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if transitioning or event.is_echo() or dialogue.is_open:
+	if transitioning or event.is_echo() or dialogue.is_open or busy:
 		return
 	if event.is_action_pressed("journal"):
 		player.set_controls_enabled(false)
@@ -156,7 +172,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func travel() -> void:
-	if transitioning or dialogue.is_open:
+	if transitioning or dialogue.is_open or busy:
 		return
 	transitioning = true
 	player.set_controls_enabled(false)

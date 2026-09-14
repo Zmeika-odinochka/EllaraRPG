@@ -98,7 +98,7 @@ func run_checks() -> void:
 	check(not game.dialogue.accept_button.visible, "Mira retains accepted status after return")
 	await key_press(KEY_ESCAPE)
 	await key_press(KEY_J)
-	check(game.dialogue.status_label.text.contains("Встреча с Корвином состоялась"), "Journal reflects meeting on both maps")
+	check(game.dialogue.status_label.text.contains("Подготовить площадь: 0 / 3"), "Journal reflects assigned work on both maps")
 	await capture("journal-corvin.png")
 	await key_press(KEY_ESCAPE)
 	check(game.player.controls_enabled, "All windows restore movement")
