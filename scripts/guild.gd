@@ -1,44 +1,22 @@
-extends Node2D
+extends "res://scripts/world_location.gd"
 
 const Furniture = preload("res://scripts/furniture.gd")
-const Dialogue = preload("res://scripts/quest_dialogue.gd")
-const INTERACTION_POINT := Vector2(384, 209)
-const INTERACTION_RADIUS: float = 38.0
-
-@onready var player: CharacterBody2D = $Actors/Player
-@onready var actors: Node2D = $Actors
-var dialogue: CanvasLayer
-var prompt: Label
-var near_mira: bool = false
 
 
-func _ready() -> void:
-	configure_input()
-	build_furniture()
-	build_walls()
-	build_hud()
-	dialogue = Dialogue.new()
-	add_child(dialogue)
-	dialogue.closed.connect(_on_dialogue_closed)
+func configure_location() -> void:
+	location_title = "Эльгард · Гильдия"
+	npc_mode = "mira"
+	npc_name = "Мира"
+	npc_point = Vector2(384, 209)
+	npc_prompt_at = Vector2(340, 78)
+	portal_point = Vector2(384, 432)
+	portal_label = "На площадь"
+	portal_scene = "res://scenes/square.tscn"
+	portal_spawn = Vector2(168, 260)
 
 
-func configure_input() -> void:
-	var bindings := {
-		"move_left": [KEY_A, KEY_LEFT],
-		"move_right": [KEY_D, KEY_RIGHT],
-		"move_up": [KEY_W, KEY_UP],
-		"move_down": [KEY_S, KEY_DOWN],
-		"interact": [KEY_E],
-		"close_dialogue": [KEY_ESCAPE],
-	}
-	for action in bindings:
-		if not InputMap.has_action(action):
-			InputMap.add_action(action)
-		for key in bindings[action]:
-			var event := InputEventKey.new()
-			event.physical_keycode = key
-			if not InputMap.action_has_event(action, event):
-				InputMap.action_add_event(action, event)
+func npc_is_reachable() -> bool:
+	return super.npc_is_reachable() and player.position.y >= 190
 
 
 func build_furniture() -> void:
@@ -81,67 +59,3 @@ func build_walls() -> void:
 	mira_body.position = $Actors/Mira.position - Vector2(0, 5)
 	mira_body.add_child(mira_collision)
 	add_child(mira_body)
-
-
-func build_hud() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 5
-	add_child(layer)
-	var header := PanelContainer.new()
-	header.position = Vector2(12, 12)
-	header.add_theme_stylebox_override("panel", Dialogue.panel_style("253c39", "a98d59", 10))
-	layer.add_child(header)
-	var titles := VBoxContainer.new()
-	titles.add_theme_constant_override("separation", 0)
-	header.add_child(titles)
-	var title := Label.new()
-	title.text = "ЭЛЛАРА"
-	title.add_theme_color_override("font_color", Color("edcf91"))
-	title.add_theme_font_size_override("font_size", 15)
-	titles.add_child(title)
-	var subtitle := Label.new()
-	subtitle.text = "Эльгард · Гильдия"
-	subtitle.add_theme_font_size_override("font_size", 11)
-	subtitle.add_theme_color_override("font_color", Color("c8d0b7"))
-	titles.add_child(subtitle)
-	var help := Label.new()
-	help.text = "WASD / стрелки — ходить     E — разговор"
-	help.position = Vector2(14, 374)
-	help.add_theme_font_size_override("font_size", 12)
-	help.add_theme_color_override("font_color", Color("f3dfb5"))
-	help.add_theme_color_override("font_shadow_color", Color("292c2b"))
-	help.add_theme_constant_override("shadow_offset_x", 1)
-	help.add_theme_constant_override("shadow_offset_y", 1)
-	layer.add_child(help)
-	var badge := Label.new()
-	badge.text = "ПРОТОТИП  /  01"
-	badge.position = Vector2(513, 16)
-	badge.add_theme_font_size_override("font_size", 11)
-	badge.modulate = Color("d3c19c")
-	layer.add_child(badge)
-	prompt = Label.new()
-	prompt.name = "MiraPrompt"
-	prompt.text = "E  ·  Мира"
-	prompt.position = Vector2(340, 78)
-	prompt.z_index = 10
-	prompt.add_theme_font_size_override("font_size", 12)
-	prompt.add_theme_color_override("font_color", Color("fff0cc"))
-	prompt.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "b79c69", 5))
-	add_child(prompt)
-
-
-func _process(_delta: float) -> void:
-	near_mira = player.position.distance_to(INTERACTION_POINT) <= INTERACTION_RADIUS and player.position.y >= 190
-	prompt.visible = near_mira and not dialogue.is_open
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact") and not event.is_echo():
-		if near_mira and not dialogue.is_open:
-			player.set_controls_enabled(false)
-			dialogue.open()
-			get_viewport().set_input_as_handled()
-
-
-func _on_dialogue_closed() -> void:
-	player.set_controls_enabled(true)

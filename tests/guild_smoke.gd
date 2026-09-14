@@ -85,7 +85,7 @@ func run_checks() -> void:
 	Input.action_release("move_up")
 	await frames()
 	check(player.position.y >= 193 and player.position.y < 205, "Reception counter blocks movement")
-	check(game.near_mira, "Mira is reachable from front of counter")
+	check(game.near_npc, "Mira is reachable from front of counter")
 	check(game.prompt.visible, "Interaction prompt appears near Mira")
 	await key_press(KEY_E)
 	check(game.dialogue.is_open, "Physical E opens quest window")
