@@ -76,6 +76,9 @@ func build_ui() -> void:
 	var help_button := button("Управление")
 	help_button.pressed.connect(open_help)
 	home.add_child(help_button)
+	var display_button := button("Экран")
+	display_button.pressed.connect(get_node("/root/DisplaySettings").open_menu)
+	home.add_child(display_button)
 	var main_menu := button("В главное меню")
 	main_menu.pressed.connect(state.return_to_main_menu)
 	home.add_child(main_menu)
@@ -269,6 +272,7 @@ func perform_save(slot: int) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if get_node("/root/DisplaySettings").menu.is_open: return
 	if not event.is_action_pressed("pause") or event.is_echo():
 		return
 	if not is_open:

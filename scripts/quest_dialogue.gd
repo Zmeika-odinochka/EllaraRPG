@@ -44,7 +44,7 @@ func _ready() -> void:
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(shade)
 	panel = ThemeUI.box(ThemeUI.DARK, 12)
-	panel.position = Vector2(14, 136)
+	panel.position = Vector2(14, 96)
 	panel.size = Vector2(612, 252)
 	overlay.add_child(panel)
 	var column := VBoxContainer.new()

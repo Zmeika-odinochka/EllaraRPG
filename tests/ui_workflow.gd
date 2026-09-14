@@ -3,7 +3,7 @@ extends "res://tests/quests_inventory.gd"
 
 func fits(control: Control, message: String) -> void:
 	var rect := control.get_global_rect()
-	check(Rect2(Vector2.ZERO, Vector2(640, 400)).encloses(rect), message + " " + str(rect))
+	check(Rect2(Vector2.ZERO, Vector2(640, 360)).encloses(rect), message + " " + str(rect))
 
 func run_checks() -> void:
 	state = root.get_node("GameState")

@@ -41,7 +41,7 @@ func button(text: String) -> Button:
 
 func build_ui() -> void:
 	var title_box := VBoxContainer.new()
-	title_box.position = Vector2(322, 40)
+	title_box.position = Vector2(322, 22)
 	title_box.custom_minimum_size.x = 282
 	add_child(title_box)
 	var title := label("ЭЛЛАРА", 38, "efd58d")
@@ -51,9 +51,9 @@ func build_ui() -> void:
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_box.add_child(subtitle)
 	home = VBoxContainer.new()
-	home.position = Vector2(375, 137)
+	home.position = Vector2(375, 113)
 	home.custom_minimum_size = Vector2(182, 230)
-	home.add_theme_constant_override("separation", 8)
+	home.add_theme_constant_override("separation", 6)
 	add_child(home)
 	continue_button = button("Продолжить")
 	continue_button.pressed.connect(continue_recent)
@@ -64,6 +64,9 @@ func build_ui() -> void:
 	var load_button := button("Загрузить игру")
 	load_button.pressed.connect(open_slots.bind("load"))
 	home.add_child(load_button)
+	var display_button := button("Экран")
+	display_button.pressed.connect(get_node("/root/DisplaySettings").open_menu)
+	home.add_child(display_button)
 	var exit_button := button("Выйти")
 	exit_button.pressed.connect(state.exit_game)
 	home.add_child(exit_button)
@@ -78,7 +81,7 @@ func build_ui() -> void:
 func build_slot_panel() -> void:
 	slot_panel = PanelContainer.new()
 	slot_panel.position = Vector2(20, 8)
-	slot_panel.custom_minimum_size = Vector2(600, 384)
+	slot_panel.custom_minimum_size = Vector2(600, 344)
 	slot_panel.add_theme_stylebox_override("panel", UI.panel_style(UI.DARK, "50625a", 14))
 	add_child(slot_panel)
 	var column := VBoxContainer.new()
@@ -250,6 +253,7 @@ func focus_slot() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if get_node("/root/DisplaySettings").menu.is_open: return
 	if event.is_action_pressed("pause") and not event.is_echo():
 		if confirm_overlay.visible:
 			close_confirmation()

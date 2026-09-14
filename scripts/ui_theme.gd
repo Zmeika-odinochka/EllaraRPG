@@ -1,5 +1,5 @@
 extends RefCounted
-## Shared visual vocabulary. Sizes are in the 640×400 logical viewport.
+## Shared visual vocabulary. Sizes are in the 640×360 logical viewport.
 const PAPER := "eddfbc"
 const INK := "252f31"
 const MUTED := "acbbae"

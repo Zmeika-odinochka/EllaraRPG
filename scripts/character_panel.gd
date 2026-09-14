@@ -37,7 +37,7 @@ func _ready() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 	panel = UI.box(UI.DARK, 12)
-	panel.custom_minimum_size = Vector2(600, 376)
+	panel.custom_minimum_size = Vector2(600, 336)
 	center.add_child(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
@@ -61,7 +61,7 @@ func _ready() -> void:
 		b.pressed.connect(switch_tab.bind(entry[0]))
 		tabs.add_child(b)
 	scroll = ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(574, 252)
+	scroll.custom_minimum_size = Vector2(574, 212)
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = true
@@ -135,7 +135,7 @@ func make_details(parent: Node, journal: bool = false) -> void:
 	column.add_theme_constant_override("separation", 6)
 	box.add_child(column)
 	detail_scroll = ScrollContainer.new()
-	detail_scroll.custom_minimum_size.y = 114
+	detail_scroll.custom_minimum_size.y = 80
 	detail_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	detail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(detail_scroll)
@@ -148,10 +148,10 @@ func make_details(parent: Node, journal: bool = false) -> void:
 func build_inventory() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	row.custom_minimum_size.y = 238
+	row.custom_minimum_size.y = 212
 	body.add_child(row)
 	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 250
+	left.custom_minimum_size.x = 240
 	left.add_theme_constant_override("separation", 8)
 	row.add_child(left)
 	left.add_child(UI.label("ПРЕДМЕТЫ ПОРУЧЕНИЙ", 11, UI.MUTED))
@@ -165,7 +165,7 @@ func build_inventory() -> void:
 	for index in range(maxi(15, keys.size())):
 		var id := str(keys[index]) if index < keys.size() else ""
 		var b := UI.button("", true)
-		b.custom_minimum_size = Vector2(46, 46)
+		b.custom_minimum_size = Vector2(44, 44)
 		b.disabled = id.is_empty()
 		b.tooltip_text = "Пустая ячейка" if id.is_empty() else Catalog.ITEMS[id].name
 		grid.add_child(b)
@@ -220,10 +220,10 @@ func build_hero() -> void:
 	left.add_child(UI.label("Филипп", 22, UI.GOLD))
 	left.add_child(UI.label("Уровень 1 · Ранг F", 12))
 	var canvas := Control.new()
-	canvas.custom_minimum_size.y = 100
+	canvas.custom_minimum_size.y = 80
 	left.add_child(canvas)
 	var portrait := Portrait.new()
-	portrait.position = Vector2(64, 90)
+	portrait.position = Vector2(64, 70)
 	portrait.scale = Vector2(2, 2)
 	canvas.add_child(portrait)
 	left.add_child(UI.label("Время в игре\n" + state.format_play_time(state.play_seconds), 11, UI.MUTED))
@@ -250,7 +250,6 @@ func build_hero() -> void:
 		value.custom_minimum_size.x = 20
 		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		pair.add_child(value)
-	right.add_child(UI.label("Уровень и характеристики героя. Деньги за выполненные поручения поступают в кошелёк.", 11, UI.MUTED))
 
 func build_journal() -> void:
 	var filters := HBoxContainer.new()
@@ -268,7 +267,7 @@ func build_journal() -> void:
 		filters.add_child(b)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	row.custom_minimum_size.y = 212
+	row.custom_minimum_size.y = 174
 	body.add_child(row)
 	var list := VBoxContainer.new()
 	list.custom_minimum_size.x = 210
