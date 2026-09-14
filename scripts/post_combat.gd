@@ -42,6 +42,7 @@ var rearm_time := 0.2
 var pointer_held := false
 var strikes_started := 0
 var animation_time := 0.0
+var damage_numbers: Array[Dictionary] = []
 var hud: CanvasLayer
 var health_bar: Panel
 var health_fill: ColorRect
@@ -199,6 +200,10 @@ func _physics_process(delta: float) -> void:
 		player.combat_movement_scale = 0.0 if not focus_active or defeated else 1.0
 	else:
 		animation_time += delta
+		# Transient world feedback also finishes after the killing blow; pauses freeze it.
+		for i in range(damage_numbers.size()-1,-1,-1):
+			damage_numbers[i].age += delta
+			if damage_numbers[i].age >= 0.8: damage_numbers.remove_at(i)
 		if blocked_last: rearm_time = 0.2
 		blocked_last = false
 		if not pointer_held: rearm_time = maxf(0, rearm_time-delta)
@@ -232,6 +237,7 @@ func in_arc(origin: Vector2, target: Vector2, direction: Vector2, radius: float)
 func resolve_swing() -> void:
 	if phase in ["cleared", "returning"]: return
 	if not in_arc(player.position, enemy.position, swing_direction, ATTACK_RANGE): return
+	damage_numbers.append({"amount": mini(enemy_health, swing_damage), "at": enemy.position, "age": 0.0})
 	enemy_health = maxi(0, enemy_health-swing_damage)
 	enemy_flash = 0.18
 	engaged = true
@@ -319,6 +325,7 @@ func hurt_player() -> void:
 
 func recover(at: Vector2) -> void:
 	if not defeated or get_tree().paused: return
+	damage_numbers.clear()
 	defeated = false
 	world.busy = false
 	defeat_overlay.hide()

@@ -11,7 +11,9 @@ func _draw() -> void:
 	if not is_instance_valid(combat): return
 	if effects_only:
 		if ground_only: draw_warning()
-		else: draw_swing()
+		else:
+			draw_swing()
+			draw_damage_numbers()
 		return
 	if combat.phase == "cleared":
 		pixel(Vector2(-13,-7),Vector2(26,7),"333d3b")
@@ -42,6 +44,16 @@ func _draw() -> void:
 		pixel(Vector2(-13,-32),Vector2(26,3),"293734")
 		var width := ceilf(26.0*combat.enemy_health/combat.ENEMY_HEALTH)
 		if width>0: pixel(Vector2(-13,-32),Vector2(width,3),"c68a68")
+
+func draw_damage_numbers() -> void:
+	var font := ThemeDB.fallback_font
+	for hit in combat.damage_numbers:
+		var text := str(hit.amount)
+		var opacity := clampf((0.8-float(hit.age))/0.3,0.0,1.0)
+		var width := font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,10).x
+		var at: Vector2 = (hit.at+Vector2(-width/2.0,-38.0-float(hit.age)*22.5)).round()
+		draw_string_outline(font,at,text,HORIZONTAL_ALIGNMENT_LEFT,-1,10,2,Color(0.09,0.14,0.14,opacity))
+		draw_string(font,at,text,HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color(0.93,0.88,0.74,opacity))
 
 func draw_warning() -> void:
 	if combat.phase in ["windup","strike"]:
