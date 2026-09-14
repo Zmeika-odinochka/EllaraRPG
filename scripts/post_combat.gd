@@ -40,10 +40,9 @@ var pointer_held := false
 var strikes_started := 0
 var animation_time := 0.0
 var hud: CanvasLayer
-var health_label: Label
-var hint: Label
 var health_bar: Panel
 var health_fill: ColorRect
+var mana_bar: Panel
 var defeat_panel: PanelContainer
 var defeat_overlay: Control
 var retry_button: Button
@@ -105,12 +104,8 @@ func build_ui() -> void:
 	controls.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(controls)
-	health_label = UI.label("", 11)
-	health_label.position = Vector2(12, 284)
-	health_label.size = Vector2(180, 18)
-	controls.add_child(health_label)
 	health_bar = Panel.new()
-	health_bar.position = Vector2(12, 307)
+	health_bar.position = Vector2(12, 328)
 	health_bar.size = Vector2(126, 7)
 	health_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	health_bar.add_theme_stylebox_override("panel", UI.panel_style("152427", "536359", 0))
@@ -121,10 +116,11 @@ func build_ui() -> void:
 	health_fill.color = Color("aa6856")
 	health_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	health_bar.add_child(health_fill)
-	hint = UI.label("", 11, UI.MUTED)
-	hint.position = Vector2(12, 326)
-	hint.size = Vector2(415, 22)
-	controls.add_child(hint)
+	# Requested HUD placeholder; spell costs and mana mechanics are a later stage.
+	mana_bar = health_bar.duplicate() as Panel
+	mana_bar.position = Vector2(12, 341)
+	mana_bar.get_child(0).color = Color("547f9f")
+	controls.add_child(mana_bar)
 	var layer := CanvasLayer.new()
 	layer.layer = 25
 	add_child(layer)
@@ -213,9 +209,7 @@ func _physics_process(delta: float) -> void:
 	player.appearance.modulate = Color("ffb49e") if player_flash > 0 else Color.WHITE
 	var near: bool = player.position.distance_to(HOME) < 205 and phase != "cleared"
 	hud.visible = not is_blocked and not defeated and (near or engaged)
-	health_label.text = "Филипп · %d / %d" % [health, MAX_HEALTH]
 	health_fill.size.x = roundf(124.0*health/MAX_HEALTH)
-	hint.text = "Ползун отступает · здоровье восстанавливается" if phase == "returning" else "ЛКМ — удар к указателю · можно отступить в проход"
 	enemy_art.queue_redraw()
 	effects.queue_redraw()
 	ground_effects.queue_redraw()
