@@ -21,6 +21,7 @@ var hud: CanvasLayer
 var pause_menu: CanvasLayer
 var inspection: CanvasLayer
 var exploration: Node2D
+var city: Node2D
 var busy: bool = false
 var near_npc: bool = false
 var near_portal: bool = false
@@ -62,6 +63,8 @@ func _ready() -> void:
 	inspection.closed.connect(_on_dialogue_closed)
 	exploration = preload("res://scripts/exploration_interactions.gd").new()
 	add_child(exploration)
+	city = preload("res://scripts/city_interactions.gd").new()
+	add_child(city)
 	state.quest_changed.connect(refresh_objective)
 	if state.transition_autosave_pending:
 		state.transition_autosave_pending = false
@@ -146,6 +149,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func interaction_text() -> String:
+	if is_instance_valid(city):
+		var action: Dictionary = city.nearest_action()
+		if not action.is_empty(): return action.label
 	if is_instance_valid(exploration):
 		var action: Dictionary = exploration.nearest_action()
 		if not action.is_empty(): return action.label
@@ -157,6 +163,7 @@ func interaction_text() -> String:
 
 func interact() -> void:
 	if not can_manual_save() or get_tree().paused: return
+	if city.interact(): return
 	if exploration.interact(): return
 	if near_guild_work(): open_character_panel("work")
 	elif near_npc:
@@ -216,4 +223,4 @@ func _on_activity_finished(success: bool) -> void:
 
 
 func can_manual_save() -> bool:
-	return not transitioning and not busy and not dialogue.is_open and not character_panel.is_open and (not is_instance_valid(inspection) or not inspection.is_open)
+	return not transitioning and not busy and not dialogue.is_open and not character_panel.is_open and (not is_instance_valid(inspection) or not inspection.is_open) and (not is_instance_valid(city) or not city.conversation.is_open)

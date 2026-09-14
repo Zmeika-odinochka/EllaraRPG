@@ -7,7 +7,10 @@ signal save_failed(message: String)
 
 enum QuestStage { AVAILABLE, ACCEPTED, MET_CORVIN, WORK_DONE, APPROVED, COMPLETED }
 
-const SAVE_VERSION: int = 4
+const SAVE_VERSION: int = 5
+const City = preload("res://scripts/city_catalog.gd")
+const Weapons = preload("res://scripts/weapon_catalog.gd")
+var equipped_weapon := ""
 var post_guard_defeated := false
 const Exploration = preload("res://scripts/exploration_catalog.gd")
 var discoveries: Array[String] = []
@@ -26,7 +29,7 @@ const SQUARE_SCENE := "res://scenes/square.tscn"
 const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
 const OUTSKIRTS_SCENE := "res://scenes/outskirts.tscn"
 const OUTPOST_SCENE := "res://scenes/outpost.tscn"
-const VALID_SCENES := [GUILD_SCENE, SQUARE_SCENE, OUTSKIRTS_SCENE, OUTPOST_SCENE]
+const VALID_SCENES := [GUILD_SCENE, SQUARE_SCENE, OUTSKIRTS_SCENE, OUTPOST_SCENE, City.MARKET, City.CRAFT, City.TEMPLE, City.GATES, City.ARMORY]
 const WORK_STEPS := {
 	"planks": "Разобрать доски",
 	"goods": "Расставить товар",
@@ -96,6 +99,7 @@ func _notification(what: int) -> void:
 
 
 func reset_game() -> void:
+	equipped_weapon = ""
 	post_guard_defeated = false
 	discoveries.clear()
 	tracked_quest = ""
@@ -277,6 +281,7 @@ func save_game(slot: int, scene_path: String = "", position: Vector2 = Vector2.I
 		"tracked_quest": tracked_quest,
 		"discoveries": discoveries.duplicate(),
 		"post_guard_defeated": post_guard_defeated,
+		"equipped_weapon": equipped_weapon,
 	}
 	var final_path := slot_path(slot)
 	var temp_path := final_path + ".tmp"
@@ -326,7 +331,7 @@ func read_slot(slot: int) -> Dictionary:
 
 
 func validate_data(data: Dictionary) -> bool:
-	if int(data.get("version", -1)) not in [1, 2, 3, SAVE_VERSION]:
+	if int(data.get("version", -1)) not in [1, 2, 3, 4, SAVE_VERSION]:
 		return false
 	if str(data.get("location_scene", "")) not in VALID_SCENES:
 		return false
@@ -351,12 +356,20 @@ func validate_data(data: Dictionary) -> bool:
 			if typeof(id) != TYPE_STRING or id not in Exploration.DISCOVERIES: return false
 	if int(data.version) >= 4 and typeof(data.get("post_guard_defeated")) != TYPE_BOOL:
 		return false
+	if int(data.version) >= 5:
+		var weapon = data.get("equipped_weapon")
+		if typeof(weapon) != TYPE_STRING or weapon not in ["", Weapons.DAGGER_ID]: return false
+		if data.inventory.has(Weapons.DAGGER_ID):
+			var count = data.inventory[Weapons.DAGGER_ID]
+			if typeof(count) not in [TYPE_INT,TYPE_FLOAT] or float(count) != 1.0: return false
+		if weapon != "" and not data.inventory.has(weapon): return false
 	return true
 
 
 func apply_data(data: Dictionary) -> bool:
 	if not validate_data(data):
 		return false
+	equipped_weapon = data.equipped_weapon if int(data.version) >= 5 else ""
 	post_guard_defeated = data.post_guard_defeated if int(data.version) >= 4 else false
 	discoveries.clear()
 	if int(data.version) >= 3:
@@ -512,7 +525,36 @@ func most_recent_slot() -> int:
 
 
 func location_name(scene_path: String) -> String:
+	if scene_path in City.TITLES: return City.TITLES[scene_path]
 	return {GUILD_SCENE: "Гильдия", SQUARE_SCENE: "Центральная площадь", OUTSKIRTS_SCENE: "Старая дорога", OUTPOST_SCENE: "Дозорный пост"}.get(scene_path, "Неизвестное место")
+
+func buy_dagger() -> bool:
+	var location := current_location()
+	if get_tree().paused or location.scene != City.ARMORY or location.position.distance_to(Vector2(384,222))>40: return false
+	if inventory.has(Weapons.DAGGER_ID) or personal_coins<Weapons.DAGGER.price: return false
+	personal_coins -= Weapons.DAGGER.price
+	inventory[Weapons.DAGGER_ID] = 1
+	if game_active and valid_slot(active_slot) and not autosave("purchase"):
+		personal_coins += Weapons.DAGGER.price
+		inventory.erase(Weapons.DAGGER_ID)
+		return false
+	quest_changed.emit()
+	return true
+
+func set_equipped_weapon(id: String) -> bool:
+	if get_tree().paused or id not in ["",Weapons.DAGGER_ID]: return false
+	if id != "" and inventory.get(id,0) != 1: return false
+	if equipped_weapon == id: return true
+	var previous := equipped_weapon
+	equipped_weapon = id
+	if game_active and valid_slot(active_slot) and not autosave("equipment"):
+		equipped_weapon = previous
+		return false
+	quest_changed.emit()
+	return true
+
+func weapon_base_damage() -> int:
+	return Weapons.base_damage(equipped_weapon)
 
 
 func discover(id: String) -> bool:

@@ -199,15 +199,29 @@ func show_item(id: String) -> void:
 		return
 	selected_item = id
 	UI.clear(details)
-	details.add_child(UI.label("НАХОДКА" if id == "watch_notes" else "ПРЕДМЕТ ПОРУЧЕНИЯ", 11, UI.MUTED))
+	details.add_child(UI.label("ОРУЖИЕ" if id == "simple_dagger" else ("НАХОДКА" if id == "watch_notes" else "ПРЕДМЕТ ПОРУЧЕНИЯ"), 11, UI.MUTED))
 	details.add_child(UI.label(Catalog.ITEMS[id].name, 18, UI.GOLD))
 	info = UI.label(Catalog.ITEMS[id].description)
 	details.add_child(info)
 	details.add_child(UI.label("Количество: %d" % int(state.inventory.get(id, 0)), 12, UI.MUTED))
+	if id == "simple_dagger":
+		var equip := UI.button("Снять оружие" if state.equipped_weapon == id else "Экипировать",true)
+		equip.pressed.connect(toggle_weapon)
+		details.add_child(equip)
+		UI.trap_focus.call_deferred(panel)
 	for key in item_buttons:
 		item_buttons[key].add_theme_stylebox_override("normal", UI.panel_style("405b51" if key == id else "30494a", UI.GOLD if key == id else "50625a", 6))
 
 func build_hero() -> void:
+	var equipment := HBoxContainer.new()
+	body.add_child(equipment)
+	var slot := UI.label("Оружие: " + ("Простой кинжал" if state.equipped_weapon == "simple_dagger" else "Не экипировано"), 13, UI.GOLD)
+	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	equipment.add_child(slot)
+	if state.inventory.has("simple_dagger"):
+		var equip := UI.button("Снять" if state.equipped_weapon != "" else "Экипировать кинжал",true)
+		equip.pressed.connect(toggle_weapon)
+		equipment.add_child(equip)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	body.add_child(row)
@@ -215,18 +229,18 @@ func build_hero() -> void:
 	portrait_box.custom_minimum_size.x = 156
 	row.add_child(portrait_box)
 	var left := VBoxContainer.new()
-	left.add_theme_constant_override("separation", 7)
+	left.add_theme_constant_override("separation", 5)
 	portrait_box.add_child(left)
-	left.add_child(UI.label("Филипп", 22, UI.GOLD))
+	left.add_child(UI.label("Филипп", 18, UI.GOLD))
 	left.add_child(UI.label("Уровень 1 · Ранг F", 12))
 	var canvas := Control.new()
-	canvas.custom_minimum_size.y = 80
+	canvas.custom_minimum_size.y = 76
 	left.add_child(canvas)
 	var portrait := Portrait.new()
 	portrait.position = Vector2(64, 70)
 	portrait.scale = Vector2(2, 2)
 	canvas.add_child(portrait)
-	left.add_child(UI.label("Время в игре\n" + state.format_play_time(state.play_seconds), 11, UI.MUTED))
+	left.add_child(UI.label("Игра: " + state.format_play_time(state.play_seconds), 11, UI.MUTED))
 	var right := VBoxContainer.new()
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.add_theme_constant_override("separation", 8)
@@ -238,7 +252,7 @@ func build_hero() -> void:
 	grid.add_theme_constant_override("v_separation", 6)
 	right.add_child(grid)
 	for key in state.BASE_STATS:
-		var card := UI.box(UI.PANEL, 7)
+		var card := UI.box(UI.PANEL, 5)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.add_child(card)
 		var pair := HBoxContainer.new()
@@ -250,6 +264,10 @@ func build_hero() -> void:
 		value.custom_minimum_size.x = 20
 		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		pair.add_child(value)
+
+func toggle_weapon() -> void:
+	state.set_equipped_weapon("simple_dagger" if state.equipped_weapon == "" else "")
+	close_button.grab_focus()
 
 func build_journal() -> void:
 	var filters := HBoxContainer.new()

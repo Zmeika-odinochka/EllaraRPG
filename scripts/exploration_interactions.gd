@@ -7,17 +7,7 @@ var actions: Array[Dictionary] = []
 func _ready() -> void:
 	world = get_parent()
 	state = get_node("/root/GameState")
-	if world.scene_file_path == state.SQUARE_SCENE:
-		actions.append({"at": Vector2(714, 398), "label": "На старую дорогу", "scene": Catalog.ROAD, "spawn": Vector2(100, 410)})
-		var sign := Label.new()
-		sign.text = "Старая дорога →"
-		sign.position = Vector2(612, 360)
-		sign.add_theme_font_size_override("font_size", 11)
-		sign.add_theme_color_override("font_color", Color("fff0cc"))
-		sign.add_theme_color_override("font_shadow_color", Color("28352e"))
-		sign.add_theme_constant_override("shadow_offset_y", 1)
-		add_child(sign)
-	elif world.scene_file_path == Catalog.ROAD:
+	if world.scene_file_path == Catalog.ROAD:
 		actions.append({"at": Vector2(560, 190), "label": "В дозорный пост", "scene": Catalog.POST, "spawn": Vector2(384, 392)})
 		actions.append({"at": Vector2(560, 302), "label": "Осмотреть калитку", "blocked_gate": true})
 	for id in Catalog.DISCOVERIES:

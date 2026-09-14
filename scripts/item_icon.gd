@@ -13,6 +13,13 @@ func _draw() -> void:
 	var origin := ((size - Vector2(32, 32)) * 0.5).floor()
 	draw_set_transform(origin)
 	match kind:
+		"simple_dagger":
+			rect(14,3,5,19,"354542")
+			rect(15,4,3,15,"c9d1c1")
+			rect(16,2,1,5,"eef0d2")
+			rect(10,20,13,3,"b19765")
+			rect(15,23,4,7,"80543a")
+			rect(14,29,6,2,"b19765")
 		"permit_parcel":
 			rect(3, 8, 26, 19, "141f24")
 			rect(4, 7, 24, 18, "c39c65")

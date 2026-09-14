@@ -10,9 +10,9 @@ func configure_location() -> void:
 	npc_point = Vector2(-1000, -1000)
 	npc_prompt_at = npc_point
 	portal_point = Vector2(100, 436) if outside else Vector2(384, 428)
-	portal_label = "На площадь" if outside else "На старую дорогу"
-	portal_scene = state.SQUARE_SCENE if outside else Catalog.ROAD
-	portal_spawn = Vector2(692, 398) if outside else Vector2(560, 212)
+	portal_label = "К Южным воротам" if outside else "На старую дорогу"
+	portal_scene = state.City.GATES if outside else Catalog.ROAD
+	portal_spawn = Vector2(384, 400) if outside else Vector2(560, 212)
 	var area := Layout.bounds(not outside)
 	var camera: Camera2D = player.get_node("Camera2D")
 	camera.limit_left = int(area.position.x)

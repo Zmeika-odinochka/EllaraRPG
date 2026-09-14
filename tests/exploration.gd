@@ -37,6 +37,18 @@ func run_checks() -> void:
 	await key_press(KEY_E)
 	await frames(5)
 	game = current_scene
+	check(game.scene_file_path == state.City.MARKET,"Square now leads into the city")
+	game.player.position = Vector2(640,432)
+	await frames(3)
+	await key_press(KEY_E)
+	await frames(5)
+	game = current_scene
+	check(game.scene_file_path == state.City.GATES,"Market reaches south gates")
+	game.player.position = Vector2(384,424)
+	await frames(3)
+	await key_press(KEY_E)
+	await frames(5)
+	game = current_scene
 	check(game.scene_file_path == state.OUTSKIRTS_SCENE and state.quest_stage == state.QuestStage.AVAILABLE,"Road accessible without quest")
 	var view := Rect2(game.player.get_node("Camera2D").get_screen_center_position()-Vector2(320,180),Vector2(640,360))
 	check(not view.intersects(Rect2(496,40,208,132)),"Entry screen does not reveal the post")
@@ -118,7 +130,7 @@ func run_checks() -> void:
 	await key_press(KEY_E)
 	await frames(5)
 	game = current_scene
-	check(game.scene_file_path == state.SQUARE_SCENE,"Original square return still works")
+	check(game.scene_file_path == state.City.GATES,"Road returns through the south gates")
 	# Formerly valid empty-floor positions may now be masonry/rock. Preserve state;
 	# relocate only the feet, to a physically free point in the same location.
 	for entry in [[state.OUTSKIRTS_SCENE,Vector2(160,190)],[state.OUTPOST_SCENE,Vector2(384,216)]]:
