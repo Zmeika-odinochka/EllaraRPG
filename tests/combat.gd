@@ -40,14 +40,27 @@ func run_checks() -> void:
 	game.player.position = Vector2(244,208)
 	await frames(3)
 	await click_enemy(48)
-	check(combat.strikes_started==1 and combat.enemy_health==2,"Real mouse hold makes one swing and one damage event")
+	check(combat.strikes_started==1 and combat.enemy_health==17,"Real mouse hold makes one swing and one damage event")
 	await frames(35)
-	check(combat.strikes_started==1 and combat.enemy_health==2,"No automatic attack from held or released input")
+	check(combat.strikes_started==1 and combat.enemy_health==17,"No automatic attack from held or released input")
+	check(combat.swing_weapon=="" and combat.swing_damage==1,"Unarmed swing uses fist and actual unarmed damage")
+	state.inventory.simple_dagger = 1
+	await click_enemy()
+	await frames(35)
+	check(combat.enemy_health==16 and combat.swing_weapon=="","Owning a dagger in the bag does not wield it")
+	check(state.set_equipped_weapon("simple_dagger"),"Owned dagger can be equipped before combat")
+	await click_enemy()
+	await frames(35)
+	check(combat.enemy_health==10 and combat.swing_weapon=="simple_dagger" and combat.swing_damage==6,"Equipped dagger deals exactly six damage and selects dagger art")
+	state.set_equipped_weapon("")
+	await click_enemy()
+	await frames(35)
+	check(combat.enemy_health==9 and combat.swing_weapon=="" and combat.swing_damage==1,"Removing the dagger restores fist damage and art")
 	await fresh()
 	game.player.position = Vector2(144,200)
 	check(combat.start_swing(Vector2(0,200)),"An empty swing starts")
 	await frames(35)
-	check(combat.enemy_health==3,"Out-of-range or wrong-facing attack misses")
+	check(combat.enemy_health==18,"Out-of-range or wrong-facing attack misses")
 	# The actual room table is between these two safe floor positions.
 	check(not combat.line_clear(Vector2(244,120),Vector2(244,200)),"Solid table blocks damage visibility")
 	await fresh()
@@ -101,7 +114,7 @@ func run_checks() -> void:
 	Input.action_release("move_down")
 	check(game.player.position.y>256 and not combat.engaged,"Existing passage allows physical retreat")
 	await wait_phase("idle")
-	check(combat.health==100 and combat.enemy_health==3 and combat.enemy.position.distance_to(combat.HOME)<4,"Retreat resets both participants after enemy returns")
+	check(combat.health==100 and combat.enemy_health==18 and combat.enemy.position.distance_to(combat.HOME)<4,"Retreat resets both participants after enemy returns")
 	# Defeat uses the live enemy loop, preserving all persistent progress.
 	await fresh()
 	state.personal_coins = 37
@@ -120,7 +133,7 @@ func run_checks() -> void:
 	check(paused and combat.defeated,"Escape remains available on defeat")
 	await key_press(KEY_ESCAPE)
 	await key_press(KEY_ENTER)
-	check(not combat.defeated and combat.health==100 and combat.enemy_health==3,"Keyboard retry restores the whole encounter")
+	check(not combat.defeated and combat.health==100 and combat.enemy_health==18,"Keyboard retry restores the whole encounter")
 	check(game.player.position.distance_to(combat.RETRY)<4 and not game.busy,"Retry starts at safe doorway")
 	check(state.personal_coins==37 and state.attributes["Сила"]==4 and state.inventory.watch_notes==1 and "shortcut" in state.discoveries,"Defeat preserves money, attributes, find and shortcut")
 	# Exercise the other choice with an actual GUI mouse event.
@@ -132,12 +145,14 @@ func run_checks() -> void:
 	await mouse_button(combat.exit_button.get_global_rect().get_center(),false)
 	check(not combat.defeated and game.player.position.distance_to(Vector2(384,392))<4,"Mouse defeat choice returns to the safe exit")
 	# Kill with separate actual mouse clicks. No artificial reward is granted.
+	state.inventory.simple_dagger = 1
+	state.set_equipped_weapon("simple_dagger")
 	game.player.position = Vector2(244,208)
 	await frames(20)
 	for i in range(3):
 		await click_enemy()
 		await frames(35)
-	check(combat.phase=="cleared" and state.post_guard_defeated,"Three separate hits clear the encounter")
+	check(combat.phase=="cleared" and state.post_guard_defeated,"Three separate dagger hits clear the encounter")
 	check(state.personal_coins==37 and state.attributes["Сила"]==4,"No unimplemented XP or coin reward")
 	check(state.read_slot(1).post_guard_defeated,"Victory autosaves")
 	var saved: Dictionary = state.read_slot(1)
@@ -163,7 +178,7 @@ func run_checks() -> void:
 	check(state.apply_data(state.read_slot(1)),"Unfinished attempt loads")
 	game = await load_world(state.OUTPOST_SCENE)
 	combat = game.combat
-	check(combat.health==100 and combat.enemy_health==3,"Loading resets both health pools consistently")
+	check(combat.health==100 and combat.enemy_health==18,"Loading resets both health pools consistently")
 	game.player.position = Vector2(244,208)
 	await wait_phase("windup")
 	check(combat.health_bar.size.y<=8,"Combat health bar stays compact")

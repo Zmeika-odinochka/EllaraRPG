@@ -65,6 +65,7 @@ func _ready() -> void:
 	item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	goods.add_child(item)
 	item.add_child(UI.label("Простой кинжал · 24 медяка",16,UI.GOLD))
+	item.add_child(UI.label("Базовый урон: %d" % state.Weapons.DAGGER.base_damage,12,UI.GOLD))
 	purse = UI.label("",12)
 	item.add_child(purse)
 	status = UI.label("",11,UI.MUTED)

@@ -205,6 +205,7 @@ func show_item(id: String) -> void:
 	details.add_child(info)
 	details.add_child(UI.label("Количество: %d" % int(state.inventory.get(id, 0)), 12, UI.MUTED))
 	if id == "simple_dagger":
+		details.add_child(UI.label("Базовый урон: %d" % state.Weapons.DAGGER.base_damage,12,UI.GOLD))
 		var equip := UI.button("Снять оружие" if state.equipped_weapon == id else "Экипировать",true)
 		equip.pressed.connect(toggle_weapon)
 		details.add_child(equip)
@@ -215,7 +216,7 @@ func show_item(id: String) -> void:
 func build_hero() -> void:
 	var equipment := HBoxContainer.new()
 	body.add_child(equipment)
-	var slot := UI.label("Оружие: " + ("Простой кинжал" if state.equipped_weapon == "simple_dagger" else "Не экипировано"), 13, UI.GOLD)
+	var slot := UI.label(("Кинжал" if state.equipped_weapon == "simple_dagger" else "Без оружия") + " · Урон: %d" % state.weapon_base_damage(), 13, UI.GOLD)
 	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	equipment.add_child(slot)
 	if state.inventory.has("simple_dagger"):

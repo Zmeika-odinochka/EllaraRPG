@@ -39,8 +39,9 @@ func _draw() -> void:
 	pixel(head+Vector2(-3,-2),Vector2(2,2),eye)
 	pixel(head+Vector2(2,-2),Vector2(2,2),eye)
 	if combat.engaged:
-		for i in range(combat.ENEMY_HEALTH):
-			pixel(Vector2(-13+i*9,-32),Vector2(7,3),"c68a68" if i<combat.enemy_health else "293734")
+		pixel(Vector2(-13,-32),Vector2(26,3),"293734")
+		var width := ceilf(26.0*combat.enemy_health/combat.ENEMY_HEALTH)
+		if width>0: pixel(Vector2(-13,-32),Vector2(width,3),"c68a68")
 
 func draw_warning() -> void:
 	if combat.phase in ["windup","strike"]:
@@ -61,13 +62,20 @@ func draw_swing() -> void:
 	if combat.swing_time>0.18:
 		var progress: float = clampf((0.5-combat.swing_time)/0.32,0,1)
 		var origin: Vector2 = combat.player.position+Vector2(0,-14)
+		if combat.swing_weapon == "":
+			var reach := 10.0+22.0*sin(progress*PI)
+			var fist: Vector2 = (origin+combat.swing_direction*reach).round()
+			draw_line(origin,(fist-combat.swing_direction*3).round(),Color("648892"),5)
+			pixel(fist-Vector2(3,3),Vector2(6,6),"d7a77f")
+			pixel(fist-Vector2(2,3),Vector2(4,2),"f3cc9d")
+			return
 		var direction: Vector2 = combat.swing_direction.rotated(-1.0+progress*2.0)
-		var hand := (origin+direction*9).round()
-		var tip := (origin+direction*32).round()
+		var hand := (origin+direction*12).round()
+		var tip := (origin+direction*28).round()
 		draw_line(hand,tip,Color("243332"),5)
 		draw_line(hand,tip,Color("c7cec0"),3)
 		draw_line(hand,(hand+direction*6).round(),Color("87603d"),3)
-		var cross := direction.orthogonal()*4
+		var cross := direction.orthogonal()*3
 		draw_line((hand+direction*7-cross).round(),(hand+direction*7+cross).round(),Color("c1a876"),2)
 		if combat.swing_time<0.38:
 			for i in range(9):

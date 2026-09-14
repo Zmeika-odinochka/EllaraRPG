@@ -6,7 +6,8 @@ const HOME := Vector2(280, 208)
 const RETRY := Vector2(144, 240)
 const TERRITORY := Rect2(112, 80, 224, 176)
 const MAX_HEALTH := 100
-const ENEMY_HEALTH := 3
+# The old three-hit counter is now health: three dagger hits, eighteen punches.
+const ENEMY_HEALTH := 18
 const ATTACK_RANGE := 42.0
 const WINDUP := 0.72
 const STRIKE := 0.16
@@ -30,6 +31,8 @@ var strike_origin := Vector2.ZERO
 var swing_direction := Vector2.RIGHT
 var swing_time := 0.0
 var swing_resolved := false
+var swing_weapon := ""
+var swing_damage := 1
 var invulnerability := 0.0
 var enemy_flash := 0.0
 var player_flash := 0.0
@@ -177,6 +180,9 @@ func start_swing(target: Vector2) -> bool:
 	player.facing = Vector2(signf(swing_direction.x),0) if absf(swing_direction.x)>absf(swing_direction.y) else Vector2(0,signf(swing_direction.y))
 	swing_time = 0.5
 	swing_resolved = false
+	# Keep the picture and damage of this swing consistent if equipment changes.
+	swing_weapon = state.equipped_weapon
+	swing_damage = state.weapon_base_damage()
 	strikes_started += 1
 	return true
 
@@ -226,7 +232,7 @@ func in_arc(origin: Vector2, target: Vector2, direction: Vector2, radius: float)
 func resolve_swing() -> void:
 	if phase in ["cleared", "returning"]: return
 	if not in_arc(player.position, enemy.position, swing_direction, ATTACK_RANGE): return
-	enemy_health -= 1
+	enemy_health = maxi(0, enemy_health-swing_damage)
 	enemy_flash = 0.18
 	engaged = true
 	if enemy_health <= 0:

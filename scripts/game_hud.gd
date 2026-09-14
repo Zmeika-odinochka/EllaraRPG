@@ -81,6 +81,7 @@ func show_toast(text: String, duration: float = 3.0) -> void:
 	toast_panel.visible = not world.dialogue.is_open and not world.character_panel.is_open and not world.busy
 
 func on_saved(slot: int, reason: String) -> void:
+	if reason == "transition": return
 	if reason == "reward" and toast_remaining > 0:
 		return # The reward notice already represents this saved event.
 	elif reason == "work":
