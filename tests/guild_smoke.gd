@@ -49,6 +49,23 @@ func capture(filename: String) -> void:
 	check(result == OK, "Screenshot " + filename)
 
 
+func solve_activity(world: Node) -> void:
+	var activity = world.activity_game
+	var guard := 0
+	while activity.is_open and guard < 30:
+		guard += 1
+		if activity.activity == "canopy":
+			var wait_count := 0
+			while (activity.cursor < 0.45 or activity.cursor > 0.54) and wait_count < 240:
+				await frames(1)
+				wait_count += 1
+			await key_press(KEY_SPACE)
+		else:
+			var answer: int = int(activity.sequence[activity.step][1])
+			await key_press(KEY_1 + answer)
+	check(not activity.is_open and not world.busy, "Player answers complete the mini-game")
+
+
 func run_checks() -> void:
 	var packed = load("res://scenes/guild.tscn")
 	if packed == null:

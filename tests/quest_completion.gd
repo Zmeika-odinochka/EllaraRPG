@@ -64,7 +64,7 @@ func run_checks() -> void:
 	check(not game.busy and state.completed_steps.is_empty(), "Q cancels unfinished work")
 	check(game.player.controls_enabled, "Cancellation restores movement")
 	await interact_at(game.WORK_POSITIONS.planks)
-	await frames(100)
+	await solve_activity(game)
 	check(state.completed_steps == ["planks"], "First task completes once")
 	await key_press(KEY_E)
 	check(not game.busy and not state.finish_work("planks"), "Completed work cannot repeat")
@@ -82,7 +82,16 @@ func run_checks() -> void:
 	check(game.work_spots.planks.finished, "Work marker survives leaving the square")
 	for step_id in ["goods", "canopy"]:
 		await interact_at(game.WORK_POSITIONS[step_id])
-		await frames(100)
+		if step_id == "canopy":
+			await key_press(KEY_SPACE)
+			check(game.activity_game.step == 0, "Timing miss cannot complete a fastening")
+			await key_press(KEY_ESCAPE)
+			var paused_cursor: float = game.activity_game.cursor
+			await frames(15)
+			check(is_equal_approx(game.activity_game.cursor, paused_cursor), "Pause freezes the timing marker")
+			await key_press(KEY_ESCAPE)
+		await capture("minigame-" + step_id + ".png")
+		await solve_activity(game)
 		check(step_id in state.completed_steps, "Work completes: " + step_id)
 	check(state.quest_stage == state.QuestStage.WORK_DONE, "All three tasks require Corvin approval")
 	check(state.personal_coins == 0, "Finishing work does not pay automatically")

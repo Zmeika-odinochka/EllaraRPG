@@ -7,7 +7,15 @@ signal save_failed(message: String)
 
 enum QuestStage { AVAILABLE, ACCEPTED, MET_CORVIN, WORK_DONE, APPROVED, COMPLETED }
 
-const SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 2
+const Catalog = preload("res://scripts/quest_catalog.gd")
+# Initial video-game balance, independent of the role-playing campaign.
+const BASE_STATS := {"Сила": 1, "Выносливость": 1, "Ловкость": 1, "Интеллект": 1, "Восприятие": 1, "Координация": 1, "Магия": 0, "Удача": 0}
+var attributes: Dictionary = BASE_STATS.duplicate()
+var inventory: Dictionary = {}
+var side_quests: Dictionary = {"archive": "available", "parcel": "available"}
+var npc_knowledge: Dictionary = {"mira": [], "corvin": []}
+var work_trust: Dictionary = {"mira": 0, "corvin": 0}
 const SLOT_COUNT: int = 5
 const REWARD: int = 18
 const GUILD_SCENE := "res://scenes/guild.tscn"
@@ -41,7 +49,7 @@ func _ready() -> void:
 		"move_left": [KEY_A, KEY_LEFT], "move_right": [KEY_D, KEY_RIGHT],
 		"move_up": [KEY_W, KEY_UP], "move_down": [KEY_S, KEY_DOWN],
 		"interact": [KEY_E], "journal": [KEY_J], "cancel_work": [KEY_Q],
-		"pause": [KEY_ESCAPE],
+		"pause": [KEY_ESCAPE], "inventory": [KEY_I],
 	}
 	for action in bindings:
 		if not InputMap.has_action(action):
@@ -65,6 +73,11 @@ func _notification(what: int) -> void:
 
 
 func reset_game() -> void:
+	attributes = BASE_STATS.duplicate()
+	inventory = {}
+	side_quests = {"archive": "available", "parcel": "available"}
+	npc_knowledge = {"mira": [], "corvin": []}
+	work_trust = {"mira": 0, "corvin": 0}
 	quest_stage = QuestStage.AVAILABLE
 	completed_steps.clear()
 	personal_coins = 0
@@ -161,6 +174,10 @@ func work_checklist() -> String:
 
 
 func objective() -> String:
+	if quest_stage in [QuestStage.AVAILABLE, QuestStage.COMPLETED]:
+		for id in Catalog.QUESTS:
+			if side_quests[id] in ["active", "packed", "ready"]:
+				return side_objective(id)
 	match quest_stage:
 		QuestStage.AVAILABLE:
 			return "Поговорить с Мирой о работе"
@@ -221,6 +238,11 @@ func save_game(slot: int, scene_path: String = "", position: Vector2 = Vector2.I
 		"completed_steps": completed_steps.duplicate(),
 		"personal_coins": personal_coins,
 		"play_seconds": play_seconds,
+		"attributes": attributes.duplicate(true),
+		"inventory": inventory.duplicate(true),
+		"side_quests": side_quests.duplicate(true),
+		"npc_knowledge": npc_knowledge.duplicate(true),
+		"work_trust": work_trust.duplicate(true),
 	}
 	var final_path := slot_path(slot)
 	var temp_path := final_path + ".tmp"
@@ -270,7 +292,7 @@ func read_slot(slot: int) -> Dictionary:
 
 
 func validate_data(data: Dictionary) -> bool:
-	if int(data.get("version", -1)) != SAVE_VERSION:
+	if int(data.get("version", -1)) not in [1, SAVE_VERSION]:
 		return false
 	if str(data.get("location_scene", "")) not in VALID_SCENES:
 		return false
@@ -282,12 +304,24 @@ func validate_data(data: Dictionary) -> bool:
 		return false
 	if int(data.get("personal_coins", -1)) < 0 or float(data.get("play_seconds", -1)) < 0:
 		return false
+	if int(data.version) == SAVE_VERSION:
+		for field in ["attributes", "inventory", "side_quests", "npc_knowledge", "work_trust"]:
+			if typeof(data.get(field)) != TYPE_DICTIONARY:
+				return false
+		for id in Catalog.QUESTS:
+			if data.side_quests.get(id, "available") not in ["available", "active", "packed", "ready", "completed"]:
+				return false
 	return true
 
 
 func apply_data(data: Dictionary) -> bool:
 	if not validate_data(data):
 		return false
+	attributes = data.get("attributes", BASE_STATS).duplicate(true)
+	inventory = data.get("inventory", {}).duplicate(true)
+	side_quests = data.get("side_quests", {"archive": "available", "parcel": "available"}).duplicate(true)
+	npc_knowledge = data.get("npc_knowledge", {"mira": [], "corvin": []}).duplicate(true)
+	work_trust = data.get("work_trust", {"mira": 0, "corvin": 0}).duplicate(true)
 	quest_stage = int(data.quest_stage)
 	completed_steps.clear()
 	for step_id in data.get("completed_steps", []):
@@ -312,6 +346,63 @@ func delete_slot(slot: int) -> bool:
 		active_slot = 0
 		game_active = false
 	return result == OK
+
+
+func accept_side_quest(id: String) -> bool:
+	if not Catalog.QUESTS.has(id) or side_quests[id] != "available":
+		return false
+	side_quests[id] = "active"
+	quest_changed.emit()
+	autosave("quest")
+	return true
+
+
+func finish_side_work(id: String) -> bool:
+	if not Catalog.QUESTS.has(id) or side_quests[id] != "active":
+		return false
+	side_quests[id] = "packed" if id == "parcel" else "ready"
+	inventory[Catalog.QUESTS[id].item] = 1
+	quest_changed.emit()
+	autosave("work")
+	return true
+
+
+func deliver_parcel() -> bool:
+	if side_quests.parcel != "packed" or not inventory.has("permit_parcel"):
+		return false
+	inventory.erase("permit_parcel")
+	inventory.delivery_receipt = 1
+	side_quests.parcel = "ready"
+	if "permits_delivered" not in npc_knowledge.corvin:
+		npc_knowledge.corvin.append("permits_delivered")
+	work_trust.corvin += 1
+	quest_changed.emit()
+	autosave("quest")
+	return true
+
+
+func claim_side_reward(id: String) -> bool:
+	if not Catalog.QUESTS.has(id) or side_quests[id] != "ready":
+		return false
+	side_quests[id] = "completed"
+	personal_coins += int(Catalog.QUESTS[id].reward)
+	inventory.erase("delivery_receipt" if id == "parcel" else "sorted_records")
+	var fact: String = Catalog.QUESTS[id].knowledge
+	if fact not in npc_knowledge.mira:
+		npc_knowledge.mira.append(fact)
+	work_trust.mira += 1
+	quest_changed.emit()
+	autosave("reward")
+	return true
+
+
+func side_objective(id: String) -> String:
+	match str(side_quests[id]):
+		"available": return "Можно взять у Миры"
+		"active": return Catalog.QUESTS[id].objective
+		"packed": return "Передать пакет Корвину на площади"
+		"ready": return "Вернуться к Мире за оплатой"
+		_: return "Завершено · %d медяков получено" % int(Catalog.QUESTS[id].reward)
 
 
 func slots() -> Array[Dictionary]:

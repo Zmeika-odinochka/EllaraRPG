@@ -2,6 +2,12 @@ extends Node2D
 
 const Dialogue = preload("res://scripts/quest_dialogue.gd")
 const PauseMenu = preload("res://scripts/pause_menu.gd")
+const CharacterPanel = preload("res://scripts/character_panel.gd")
+const ActivityGame = preload("res://scripts/activity_game.gd")
+var character_panel: CanvasLayer
+var activity_game: CanvasLayer
+var current_work := ""
+var work_prompt: Label
 @onready var player: CharacterBody2D = $Actors/Player
 @onready var actors: Node2D = $Actors
 var state: Node
@@ -39,6 +45,14 @@ func _ready() -> void:
 	dialogue = Dialogue.new()
 	add_child(dialogue)
 	dialogue.closed.connect(_on_dialogue_closed)
+	dialogue.options_requested.connect(open_character_panel)
+	character_panel = CharacterPanel.new()
+	add_child(character_panel)
+	character_panel.closed.connect(_on_dialogue_closed)
+	character_panel.work_requested.connect(begin_work)
+	activity_game = ActivityGame.new()
+	add_child(activity_game)
+	activity_game.finished.connect(_on_activity_finished)
 	pause_menu = PauseMenu.new()
 	add_child(pause_menu)
 	state.quest_changed.connect(refresh_objective)
@@ -92,7 +106,7 @@ func build_hud() -> void:
 	subtitle.add_theme_color_override("font_color", Color("c8d0b7"))
 	titles.add_child(subtitle)
 	var help := Label.new()
-	help.text = "WASD / стрелки — ходить   E — действие   J — журнал   Esc — пауза"
+	help.text = "WASD — ходить   E — действие   J — журнал   I — инвентарь   Esc — пауза"
 	help.position = Vector2(14, 374)
 	help.add_theme_font_size_override("font_size", 12)
 	help.add_theme_color_override("font_color", Color("f3dfb5"))
@@ -121,6 +135,14 @@ func build_hud() -> void:
 	prompt.add_theme_color_override("font_color", Color("fff0cc"))
 	prompt.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "b79c69", 5))
 	add_child(prompt)
+	work_prompt = Label.new()
+	work_prompt.text = "E · Рабочее место"
+	work_prompt.position = Vector2(584, 150)
+	work_prompt.z_index = 10
+	work_prompt.add_theme_font_size_override("font_size", 12)
+	work_prompt.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "b79c69", 5))
+	work_prompt.hide()
+	add_child(work_prompt)
 
 
 	portal_prompt = Label.new()
@@ -157,19 +179,27 @@ func npc_is_reachable() -> bool:
 func _process(_delta: float) -> void:
 	near_npc = npc_is_reachable()
 	near_portal = player.position.distance_to(portal_point) <= 27.0
-	prompt.visible = near_npc and not dialogue.is_open and not transitioning and not busy
-	portal_prompt.visible = near_portal and not dialogue.is_open and not transitioning and not busy
+	var free: bool = not dialogue.is_open and not transitioning and not busy and not character_panel.is_open
+	prompt.visible = near_npc and free
+	portal_prompt.visible = near_portal and free
+	work_prompt.visible = near_guild_work() and free
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if transitioning or event.is_echo() or dialogue.is_open or busy:
+	if transitioning or event.is_echo() or dialogue.is_open or busy or character_panel.is_open:
 		return
-	if event.is_action_pressed("journal"):
+	if event.is_action_pressed("inventory"):
+		open_character_panel("inventory")
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("journal"):
 		player.set_controls_enabled(false)
 		dialogue.open("journal")
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("interact"):
-		if near_npc:
+		if near_guild_work():
+			open_character_panel("work")
+			get_viewport().set_input_as_handled()
+		elif near_npc:
 			player.set_controls_enabled(false)
 			dialogue.open(npc_mode)
 			get_viewport().set_input_as_handled()
@@ -179,7 +209,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func travel() -> void:
-	if transitioning or dialogue.is_open or busy:
+	if transitioning or dialogue.is_open or busy or character_panel.is_open:
 		return
 	transitioning = true
 	player.set_controls_enabled(false)
@@ -198,6 +228,33 @@ func travel() -> void:
 func _on_dialogue_closed() -> void:
 	player.set_controls_enabled(true)
 
+func near_guild_work() -> bool:
+	return scene_file_path == state.GUILD_SCENE and player.position.distance_to(Vector2(650, 174)) < 36.0
+
+func open_character_panel(context: String) -> void:
+	player.set_controls_enabled(false)
+	character_panel.open(context)
+
+func begin_work(id: String) -> void:
+	if busy or transitioning or dialogue.is_open or character_panel.is_open:
+		return
+	if id in state.Catalog.QUESTS and state.side_quests[id] != "active":
+		return
+	current_work = id
+	busy = true
+	player.set_controls_enabled(false)
+	activity_game.open_game(id)
+
+func _on_activity_finished(success: bool) -> void:
+	if success:
+		if current_work in state.Catalog.QUESTS:
+			state.finish_side_work(current_work)
+		else:
+			state.finish_work(current_work)
+	busy = false
+	current_work = ""
+	player.set_controls_enabled(true)
+
 
 func can_manual_save() -> bool:
-	return not transitioning and not busy and not dialogue.is_open
+	return not transitioning and not busy and not dialogue.is_open and not character_panel.is_open

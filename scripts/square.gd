@@ -2,7 +2,6 @@ extends "res://scripts/world_location.gd"
 
 const Furniture = preload("res://scripts/furniture.gd")
 const WorkSpot = preload("res://scripts/work_spot.gd")
-const WORK_DURATION: float = 1.5
 const WORK_POSITIONS := {
 	"planks": Vector2(574, 415),
 	"goods": Vector2(453, 211),
@@ -36,7 +35,7 @@ func _process(delta: float) -> void:
 	super._process(delta)
 	selected_step = ""
 	var active: bool = state.quest_stage == state.QuestStage.MET_CORVIN
-	if active and not busy and not dialogue.is_open and not transitioning:
+	if active and not busy and not dialogue.is_open and not transitioning and not character_panel.is_open:
 		var closest: float = 32.0
 		for step_id in WORK_POSITIONS:
 			if step_id in state.completed_steps:
@@ -49,10 +48,6 @@ func _process(delta: float) -> void:
 		work_spots[step_id].update_status(step_id in state.completed_steps, active, selected_step == step_id, state.WORK_STEPS[step_id])
 	if busy:
 		work_elapsed += delta
-		activity_label.text = "%s · %d%% · Q — отменить" % [state.WORK_STEPS[working_step], mini(100, int(work_elapsed / WORK_DURATION * 100))]
-		if work_elapsed >= WORK_DURATION:
-			state.finish_work(working_step)
-			stop_work()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -63,18 +58,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			stop_work()
 			get_viewport().set_input_as_handled()
 		return
-	if not transitioning and not dialogue.is_open and event.is_action_pressed("interact") and not selected_step.is_empty() and not near_npc and not near_portal:
+	if not transitioning and not dialogue.is_open and not character_panel.is_open and event.is_action_pressed("interact") and not selected_step.is_empty() and not near_npc and not near_portal:
 		working_step = selected_step
 		work_elapsed = 0.0
-		busy = true
-		player.set_controls_enabled(false)
-		activity_label.show()
+		begin_work(working_step)
 		get_viewport().set_input_as_handled()
 		return
 	super._unhandled_input(event)
 
 
 func stop_work() -> void:
+	activity_game.cancel_game()
 	busy = false
 	working_step = ""
 	work_elapsed = 0.0

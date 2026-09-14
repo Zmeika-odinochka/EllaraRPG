@@ -1,6 +1,8 @@
 extends CanvasLayer
 
 signal closed
+signal options_requested(context: String)
+var options_button: Button
 var is_open: bool = false
 var mode: String = "mira"
 var overlay: Control
@@ -71,19 +73,30 @@ func _ready() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size.x = 470
+	panel.custom_minimum_size.x = 540
 	panel.add_theme_stylebox_override("panel", panel_style("e7d5ab", "72523b", 18))
 	center.add_child(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
 	panel.add_child(column)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size.y = 230
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(scroll)
+	var text_column := VBoxContainer.new()
+	text_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_column.add_theme_constant_override("separation", 8)
+	scroll.add_child(text_column)
 	speaker_label = text_label(12, "647052")
 	title_label = text_label(22, "3c3930")
 	body_label = text_label(14, "65533f")
 	detail_label = text_label(14, "463e33")
 	status_label = text_label(12, "647052")
 	for label in [speaker_label, title_label, body_label, detail_label, status_label]:
-		column.add_child(label)
+		text_column.add_child(label)
+	options_button = make_button("Другие поручения")
+	options_button.pressed.connect(_options)
+	column.add_child(options_button)
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 10)
 	column.add_child(buttons)
@@ -91,12 +104,15 @@ func _ready() -> void:
 	close_button = make_button("Закрыть")
 	buttons.add_child(accept_button)
 	buttons.add_child(close_button)
+	close_button.focus_next = accept_button.get_path()
 	accept_button.pressed.connect(_accept)
 	close_button.pressed.connect(close)
 	overlay.hide()
 
 
 func refresh() -> void:
+	options_button.visible = mode in ["mira", "journal"] or (mode == "corvin" and state.side_quests.parcel == "packed")
+	options_button.text = "Все задания" if mode == "journal" else ("Передать пакет Миры" if mode == "corvin" else "Другие поручения")
 	var phase: int = state.quest_stage
 	var available: bool = phase == state.QuestStage.AVAILABLE
 	accept_button.hide()
@@ -165,6 +181,36 @@ func refresh() -> void:
 				body_label.text = "«Твою работу я уже принял. Хорошо справился»."
 				detail_label.text = "Поручение завершено.\n18 медяков уже выплачены Мирой."
 				status_label.text = "Расчёт закрыт"
+			if "permits_delivered" in state.npc_knowledge.corvin:
+				body_label.text += "\n«Разрешения получил. Торговцам больше не придётся ждать»."
+	if mode == "journal":
+		var active_count := 1 if phase > state.QuestStage.AVAILABLE and phase < state.QuestStage.COMPLETED else 0
+		var completed_count := 1 if phase == state.QuestStage.COMPLETED else 0
+		var extra_lines: PackedStringArray = []
+		for id in state.Catalog.QUESTS:
+			var status: String = state.side_quests[id]
+			if status == "available":
+				continue
+			if status == "completed":
+				completed_count += 1
+			else:
+				active_count += 1
+			extra_lines.append(state.Catalog.QUESTS[id].title + "\n" + state.side_objective(id))
+		if not extra_lines.is_empty():
+			title_label.text = "Журнал заданий"
+			body_label.text = "Подготовка ярмарки: " + state.quest_summary(phase)
+			detail_label.text = "\n\n".join(extra_lines)
+			status_label.text = "Активных: %d · Завершённых: %d" % [active_count, completed_count]
+
+
+func _options() -> void:
+	if mode == "corvin":
+		state.deliver_parcel()
+		refresh()
+		return
+	var context := "quests" if mode == "journal" else "jobs"
+	close()
+	options_requested.emit(context)
 
 
 func _accept() -> void:
