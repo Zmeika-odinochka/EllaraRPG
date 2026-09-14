@@ -12,10 +12,11 @@ func run_checks() -> void:
 	state.active_slot = 1
 	state.game_active = true
 	game = await load_world(state.GUILD_SCENE)
+	check(not game.objective_label.visible and game.objective_label.text.is_empty(), "No quest leaves HUD objective empty")
 	await capture("hud.png")
-	game.hud.toolbar.get_child(0).pressed.emit()
+	await key_press(KEY_I)
 	await frames()
-	check(game.character_panel.mode == "inventory" and not game.player.controls_enabled, "HUD opens bag with movement blocked")
+	check(game.character_panel.mode == "inventory" and not game.player.controls_enabled, "I opens bag with movement blocked")
 	fits(game.character_panel.panel, "Bag fits viewport")
 	await capture("bag-empty.png")
 	await key_press(KEY_J)
@@ -47,6 +48,9 @@ func run_checks() -> void:
 	state.accept_side_quest("archive")
 	state.accept_side_quest("parcel")
 	state.meet_corvin()
+	await frames()
+	fits(game.objective_label, "Current objective fits top-right HUD")
+	await capture("hud-active.png")
 	await key_press(KEY_J)
 	check(game.character_panel.quest_buttons.size() == 3, "All three accepted quests visible at once")
 	await key_press(KEY_PAGEDOWN)

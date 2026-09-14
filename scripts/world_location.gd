@@ -15,7 +15,6 @@ var dialogue: CanvasLayer
 var prompt: Label
 var portal_prompt: Label
 var objective_label: Label
-var wallet_label: Label
 var activity_label: Label
 var hud: CanvasLayer
 var pause_menu: CanvasLayer
@@ -89,7 +88,6 @@ func build_hud() -> void:
 	hud = preload("res://scripts/game_hud.gd").new()
 	add_child(hud)
 	objective_label = hud.objective_label
-	wallet_label = hud.wallet_label
 	activity_label = hud.activity_label
 	prompt = make_prompt("E · " + npc_name, npc_prompt_at)
 	prompt.name = "NpcPrompt"
@@ -169,7 +167,7 @@ func travel() -> void:
 		state.transition_autosave_pending = false
 		transitioning = false
 		player.set_controls_enabled(true)
-		objective_label.text = "Не удалось открыть локацию. Попробуйте ещё раз."
+		hud.show_toast("Не удалось открыть локацию. Попробуйте ещё раз.", 8.0)
 		push_error("Scene transition failed: " + error_string(result))
 
 

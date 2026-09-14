@@ -3,11 +3,7 @@ const UI = preload("res://scripts/ui_theme.gd")
 var world: Node
 var state: Node
 var objective_label: Label
-var wallet_label: Label
 var activity_label: Label
-var tracker_title: Label
-var tracker: Button
-var toolbar: HBoxContainer
 var action_button: Button
 var toast: Label
 var toast_remaining := 0.0
@@ -29,36 +25,14 @@ func _ready() -> void:
 	controls.add_child(location)
 	var title := UI.label(world.location_title.replace(" · ", "\n"), 12)
 	location.add_child(title)
-	wallet_label = UI.label("", 13, UI.GOLD)
-	wallet_label.position = Vector2(474, 14)
-	wallet_label.size = Vector2(152, 28)
-	wallet_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	wallet_label.add_theme_stylebox_override("normal", UI.panel_style(UI.DARK, "50625a", 7))
-	controls.add_child(wallet_label)
-	tracker = UI.button("")
-	tracker.position = Vector2(12, 330)
-	tracker.size = Vector2(290, 58)
-	tracker.tooltip_text = "Открыть журнал заданий · J"
-	tracker.pressed.connect(open_menu.bind("quests"))
-	controls.add_child(tracker)
-	tracker_title = UI.label("ТЕКУЩАЯ ЦЕЛЬ · J", 10, UI.GOLD)
-	tracker_title.position = Vector2(9, 6)
-	tracker_title.size.x = 272
-	tracker.add_child(tracker_title)
 	objective_label = UI.label("", 12)
-	objective_label.position = Vector2(9, 22)
-	objective_label.size = Vector2(272, 31)
-	tracker.add_child(objective_label)
-	toolbar = HBoxContainer.new()
-	toolbar.position = Vector2(322, 356)
-	toolbar.size = Vector2(306, 32)
-	toolbar.add_theme_constant_override("separation", 5)
-	controls.add_child(toolbar)
-	for entry in [["Сумка · I", "inventory"], ["Задания · J", "quests"], ["Esc", "pause"]]:
-		var b := UI.button(entry[0])
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.pressed.connect(open_menu.bind(entry[1]))
-		toolbar.add_child(b)
+	objective_label.position = Vector2(350, 14)
+	objective_label.size = Vector2(278, 40)
+	objective_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	objective_label.add_theme_color_override("font_shadow_color", Color("182525"))
+	objective_label.add_theme_constant_override("shadow_offset_x", 1)
+	objective_label.add_theme_constant_override("shadow_offset_y", 1)
+	controls.add_child(objective_label)
 	action_button = UI.button("", true)
 	action_button.position = Vector2(438, 320)
 	action_button.size = Vector2(190, 28)
@@ -78,15 +52,10 @@ func _ready() -> void:
 	state.save_failed.connect(on_save_failed)
 	refresh()
 
-func open_menu(context: String) -> void:
-	if not world.can_manual_save(): return
-	if context == "pause": world.pause_menu.open_pause()
-	else: world.open_character_panel(context)
-
 func refresh() -> void:
-	objective_label.text = state.objective()
-	wallet_label.text = "%d медяков" % state.personal_coins
-	tracker_title.text = "ТЕКУЩАЯ ЦЕЛЬ · J" if not state.current_tracked_quest().is_empty() else "ГИЛЬДИЯ · J"
+	var has_objective: bool = not state.current_tracked_quest().is_empty()
+	objective_label.text = state.objective() if has_objective else ""
+	objective_label.visible = has_objective
 	if state.personal_coins > previous_coins:
 		show_toast("Получено %d медяков" % (state.personal_coins - previous_coins))
 	previous_coins = state.personal_coins
