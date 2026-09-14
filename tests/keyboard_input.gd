@@ -38,9 +38,9 @@ func run_checks() -> void:
 			check(not game.character_panel.is_open, "Same key closes inventory")
 		for key in [KEY_J, "О".unicode_at(0)]:
 			await key_press(key)
-			check(game.dialogue.is_open, "Logical J/RU opens journal")
+			check(game.character_panel.is_open and game.character_panel.mode == "quests", "Logical J/RU opens journal")
 			await key_press(key)
-			check(not game.dialogue.is_open, "Same key closes journal")
+			check(not game.character_panel.is_open, "Same key closes journal")
 		game.player.position = Vector2(384, 205)
 		await frames()
 		await key_press(KEY_E)

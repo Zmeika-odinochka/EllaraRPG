@@ -16,46 +16,20 @@ var status_label: Label
 var state: Node
 
 
+const ThemeUI = preload("res://scripts/ui_theme.gd")
+var panel: PanelContainer
+var text_scroll: ScrollContainer
+
 static func panel_style(background: String, border: String, margin: int = 16) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(background)
-	style.border_color = Color(border)
-	style.set_border_width_all(2)
-	style.content_margin_left = margin
-	style.content_margin_right = margin
-	style.content_margin_top = margin
-	style.content_margin_bottom = margin
-	return style
+	return ThemeUI.panel_style(background, border, margin)
 
-
-func text_label(size: int, color: String) -> Label:
-	var label := Label.new()
-	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_color", Color(color))
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	return label
-
+func text_label(font_size: int, color: String) -> Label:
+	return ThemeUI.label("", font_size, color)
 
 func make_button(text: String) -> Button:
-	var button := Button.new()
-	button.text = text
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.custom_minimum_size.y = 34
-	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	button.add_theme_font_size_override("font_size", 14)
-	button.add_theme_color_override("font_color", Color("f1dfb1"))
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_focus_color", Color.WHITE)
-	button.add_theme_stylebox_override("normal", panel_style("35554b", "254038", 6))
-	button.add_theme_stylebox_override("hover", panel_style("496e59", "d1b777", 6))
-	button.add_theme_stylebox_override("pressed", panel_style("263f37", "d1b777", 6))
-	var focus := StyleBoxFlat.new()
-	focus.bg_color = Color.TRANSPARENT
-	focus.border_color = Color("d1b777")
-	focus.set_border_width_all(2)
-	button.add_theme_stylebox_override("focus", focus)
-	return button
-
+	var b := ThemeUI.button(text)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return b
 
 func _ready() -> void:
 	state = get_node("/root/GameState")
@@ -66,61 +40,61 @@ func _ready() -> void:
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(overlay)
 	var shade := ColorRect.new()
-	shade.color = Color(0.05, 0.08, 0.08, 0.72)
+	shade.color = Color(0.03, 0.06, 0.06, 0.25)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(shade)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(center)
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size.x = 540
-	panel.add_theme_stylebox_override("panel", panel_style("e7d5ab", "72523b", 18))
-	center.add_child(panel)
+	panel = ThemeUI.box(ThemeUI.DARK, 12)
+	panel.position = Vector2(14, 136)
+	panel.size = Vector2(612, 252)
+	overlay.add_child(panel)
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
+	column.add_theme_constant_override("separation", 6)
 	panel.add_child(column)
+	speaker_label = text_label(11, ThemeUI.GOLD)
+	column.add_child(speaker_label)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size.y = 230
+	text_scroll = scroll
+	scroll.custom_minimum_size.y = 142
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(scroll)
 	var text_column := VBoxContainer.new()
 	text_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_column.add_theme_constant_override("separation", 8)
+	text_column.add_theme_constant_override("separation", 6)
 	scroll.add_child(text_column)
-	speaker_label = text_label(12, "647052")
-	title_label = text_label(22, "3c3930")
-	body_label = text_label(14, "65533f")
-	detail_label = text_label(14, "463e33")
-	status_label = text_label(12, "647052")
-	for label in [speaker_label, title_label, body_label, detail_label, status_label]:
-		text_column.add_child(label)
+	title_label = text_label(19, ThemeUI.PAPER)
+	body_label = text_label(14, ThemeUI.PAPER)
+	detail_label = text_label(11, ThemeUI.MUTED)
+	status_label = text_label(11, ThemeUI.GOLD)
+	for l in [title_label, body_label, detail_label]:
+		text_column.add_child(l)
+	column.add_child(status_label)
+	var buttons := HBoxContainer.new()
+	buttons.add_theme_constant_override("separation", 6)
+	column.add_child(buttons)
 	options_button = make_button("Другие поручения")
 	options_button.pressed.connect(_options)
-	column.add_child(options_button)
-	var buttons := HBoxContainer.new()
-	buttons.add_theme_constant_override("separation", 10)
-	column.add_child(buttons)
 	accept_button = make_button("Принять")
 	close_button = make_button("Закрыть")
 	buttons.add_child(accept_button)
+	buttons.add_child(options_button)
 	buttons.add_child(close_button)
-	close_button.focus_next = accept_button.get_path()
 	accept_button.pressed.connect(_accept)
 	close_button.pressed.connect(close)
 	overlay.hide()
 
-
 func refresh() -> void:
-	options_button.visible = mode in ["mira", "journal"] or (mode == "corvin" and state.side_quests.parcel == "packed")
-	options_button.text = "Все задания" if mode == "journal" else ("Передать пакет Миры" if mode == "corvin" else "Другие поручения")
+	if is_open: ThemeUI.trap_focus.call_deferred(overlay)
+	options_button.visible = mode == "mira" or (mode == "corvin" and state.side_quests.parcel == "packed")
+	options_button.text = "Передать пакет Миры" if mode == "corvin" else "Другие поручения"
 	var phase: int = state.quest_stage
 	var available: bool = phase == state.QuestStage.AVAILABLE
 	accept_button.hide()
 	accept_button.text = "Принять"
 	close_button.text = "Закрыть"
 	title_label.text = "Подготовка ярмарки"
-	detail_label.text = "Награда: 18 медяков лично тебе.\nСрок: до начала завтрашней ярмарки.\nРасчёт: у Миры после подписи Корвина."
-	status_label.text = "Задание ещё не принято" if available else state.objective()
+	detail_label.text = "18 медяков лично тебе · До начала завтрашней ярмарки\nОплата у Миры после подписи Корвина."
+	status_label.text = "Задание ещё не принято" if available else state.main_objective()
 	match mode:
 		"mira":
 			speaker_label.text = "МИРА / ГИЛЬДИЯ ЭЛЬГАРДА"
@@ -141,22 +115,6 @@ func refresh() -> void:
 				status_label.text = "Поручение завершено"
 			else:
 				body_label.text = "«За расчётом приходи после приёмки. Корвин должен проверить твою работу и поставить подпись»."
-		"journal":
-			speaker_label.text = "ЖУРНАЛ ЗАДАНИЙ / J"
-			if available:
-				title_label.text = "Пока нет заданий"
-				body_label.text = "Мира у стойки гильдии подскажет, где нужна помощь."
-				detail_label.text = "Поговори с ней и выбери «Принять», чтобы добавить поручение в журнал."
-				status_label.text = "Активных заданий: 0"
-			elif phase == state.QuestStage.COMPLETED:
-				body_label.text = "Ты подготовил площадь, сдал работу Корвину и получил оплату у Миры."
-				detail_label.text = "Получено лично: 18 медяков.\nКошелёк: %d медяков." % state.personal_coins
-				status_label.text = "Активных: 0 · Завершённых: 1"
-			else:
-				body_label.text = "Личное поручение: помочь с подготовкой центральной площади."
-				if phase >= state.QuestStage.MET_CORVIN:
-					detail_label.text = state.work_checklist() + "\nНаграда: 18 медяков лично тебе."
-				status_label.text = "Активных заданий: 1\n" + state.objective()
 		"corvin":
 			speaker_label.text = "КОРВИН / РАСПОРЯДИТЕЛЬ ЯРМАРКИ"
 			if available:
@@ -183,24 +141,6 @@ func refresh() -> void:
 				status_label.text = "Расчёт закрыт"
 			if "permits_delivered" in state.npc_knowledge.corvin:
 				body_label.text += "\n«Разрешения получил. Торговцам больше не придётся ждать»."
-	if mode == "journal":
-		var active_count := 1 if phase > state.QuestStage.AVAILABLE and phase < state.QuestStage.COMPLETED else 0
-		var completed_count := 1 if phase == state.QuestStage.COMPLETED else 0
-		var extra_lines: PackedStringArray = []
-		for id in state.Catalog.QUESTS:
-			var status: String = state.side_quests[id]
-			if status == "available":
-				continue
-			if status == "completed":
-				completed_count += 1
-			else:
-				active_count += 1
-			extra_lines.append(state.Catalog.QUESTS[id].title + "\n" + state.side_objective(id))
-		if not extra_lines.is_empty():
-			title_label.text = "Журнал заданий"
-			body_label.text = "Подготовка ярмарки: " + state.quest_summary(phase)
-			detail_label.text = "\n\n".join(extra_lines)
-			status_label.text = "Активных: %d · Завершённых: %d" % [active_count, completed_count]
 
 
 func _options() -> void:
@@ -208,7 +148,7 @@ func _options() -> void:
 		state.deliver_parcel()
 		refresh()
 		return
-	var context := "quests" if mode == "journal" else "jobs"
+	var context := "jobs"
 	close()
 	options_requested.emit(context)
 
@@ -234,7 +174,9 @@ func open(context: String = "mira") -> void:
 	if mode == "corvin":
 		state.meet_corvin()
 	refresh()
+	text_scroll.scroll_vertical = 0
 	overlay.show()
+	ThemeUI.trap_focus(overlay)
 	# Opening a window never accepts a quest through a held key.
 	close_button.grab_focus()
 
@@ -249,8 +191,7 @@ func close() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not is_open or event.is_echo():
-		return
-	if mode == "journal" and event.is_action_pressed("journal"):
-		close()
+	if not is_open or event.is_echo(): return
+	if event.is_action_pressed("page_up") or event.is_action_pressed("page_down"):
+		text_scroll.scroll_vertical += -64 if event.is_action_pressed("page_up") else 64
 		get_viewport().set_input_as_handled()

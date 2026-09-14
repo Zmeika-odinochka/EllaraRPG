@@ -37,6 +37,7 @@ var personal_coins: int = 0
 var play_seconds: float = 0.0
 var game_active: bool = false
 var transition_autosave_pending: bool = false
+var tracked_quest: String = ""
 
 
 func _ready() -> void:
@@ -52,6 +53,7 @@ func _ready() -> void:
 		"pause": [KEY_ESCAPE], "inventory": [KEY_I],
 		"work_timing": [KEY_SPACE], "work_choice_1": [KEY_1],
 		"work_choice_2": [KEY_2], "work_choice_3": [KEY_3],
+		"page_up": [KEY_PAGEUP], "page_down": [KEY_PAGEDOWN],
 	}
 	# Some Windows input sources send an unusable scan code but a valid logical key.
 	# Keep physical positions for any layout and logical EN/RU fallbacks for those sources.
@@ -89,6 +91,7 @@ func _notification(what: int) -> void:
 
 
 func reset_game() -> void:
+	tracked_quest = ""
 	attributes = BASE_STATS.duplicate()
 	inventory = {}
 	side_quests = {"archive": "available", "parcel": "available"}
@@ -190,10 +193,15 @@ func work_checklist() -> String:
 
 
 func objective() -> String:
-	if quest_stage in [QuestStage.AVAILABLE, QuestStage.COMPLETED]:
-		for id in Catalog.QUESTS:
-			if side_quests[id] in ["active", "packed", "ready"]:
-				return side_objective(id)
+	var selected := current_tracked_quest()
+	if selected == "fair":
+		return main_objective()
+	if selected in Catalog.QUESTS:
+		return side_objective(selected)
+	return "Поговорить с Мирой о работе" if quest_stage == QuestStage.AVAILABLE else "Все поручения завершены"
+
+
+func main_objective() -> String:
 	match quest_stage:
 		QuestStage.AVAILABLE:
 			return "Поговорить с Мирой о работе"
@@ -259,6 +267,7 @@ func save_game(slot: int, scene_path: String = "", position: Vector2 = Vector2.I
 		"side_quests": side_quests.duplicate(true),
 		"npc_knowledge": npc_knowledge.duplicate(true),
 		"work_trust": work_trust.duplicate(true),
+		"tracked_quest": tracked_quest,
 	}
 	var final_path := slot_path(slot)
 	var temp_path := final_path + ".tmp"
@@ -333,6 +342,9 @@ func validate_data(data: Dictionary) -> bool:
 func apply_data(data: Dictionary) -> bool:
 	if not validate_data(data):
 		return false
+	tracked_quest = str(data.get("tracked_quest", ""))
+	if tracked_quest != "fair" and tracked_quest not in Catalog.QUESTS:
+		tracked_quest = ""
 	attributes = data.get("attributes", BASE_STATS).duplicate(true)
 	inventory = data.get("inventory", {}).duplicate(true)
 	side_quests = data.get("side_quests", {"archive": "available", "parcel": "available"}).duplicate(true)
@@ -419,6 +431,46 @@ func side_objective(id: String) -> String:
 		"packed": return "Передать пакет Корвину на площади"
 		"ready": return "Вернуться к Мире за оплатой"
 		_: return "Завершено · %d медяков получено" % int(Catalog.QUESTS[id].reward)
+
+
+func journal_entries() -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	if quest_stage != QuestStage.AVAILABLE:
+		entries.append({"id": "fair", "title": "Подготовка ярмарки", "reward": REWARD,
+			"completed": quest_stage == QuestStage.COMPLETED,
+			"status": quest_summary(quest_stage), "objective": main_objective(),
+			"details": "Подготовить площадь до завтрашней ярмарки.\n\n" + (work_checklist() + "\n\n" if quest_stage >= QuestStage.MET_CORVIN else "") + "Приёмка у Корвина. Оплата у Миры."})
+	for id in Catalog.QUESTS:
+		var status: String = side_quests[id]
+		if status == "available":
+			continue
+		entries.append({"id": id, "title": Catalog.QUESTS[id].title, "reward": Catalog.QUESTS[id].reward,
+			"completed": status == "completed", "objective": side_objective(id),
+			"status": {"active": "В работе", "packed": "Готово к доставке", "ready": "Ожидает оплаты", "completed": "Завершено"}.get(status, "В работе"),
+			"details": Catalog.QUESTS[id].offer})
+	return entries
+
+
+func current_tracked_quest() -> String:
+	var first := ""
+	for entry in journal_entries():
+		if entry.completed:
+			continue
+		if entry.id == tracked_quest:
+			return tracked_quest
+		if first.is_empty():
+			first = entry.id
+	return first
+
+
+func track_quest(id: String) -> bool:
+	for entry in journal_entries():
+		if entry.id == id and not entry.completed:
+			tracked_quest = id
+			quest_changed.emit()
+			autosave("tracking")
+			return true
+	return false
 
 
 func slots() -> Array[Dictionary]:

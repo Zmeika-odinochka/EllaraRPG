@@ -76,6 +76,22 @@ func stop_work() -> void:
 	player.set_controls_enabled(true)
 
 
+func interaction_text() -> String:
+	var base := super.interaction_text()
+	if not base.is_empty(): return base
+	if not selected_step.is_empty(): return state.WORK_STEPS[selected_step]
+	return ""
+
+
+func interact() -> void:
+	if can_manual_save() and not get_tree().paused and not selected_step.is_empty() and not near_npc and not near_portal:
+		working_step = selected_step
+		work_elapsed = 0.0
+		begin_work(working_step)
+	else:
+		super.interact()
+
+
 func configure_location() -> void:
 	location_title = "Эльгард · Центральная площадь"
 	npc_mode = "corvin"

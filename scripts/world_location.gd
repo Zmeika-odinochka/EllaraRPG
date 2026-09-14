@@ -17,6 +17,7 @@ var portal_prompt: Label
 var objective_label: Label
 var wallet_label: Label
 var activity_label: Label
+var hud: CanvasLayer
 var pause_menu: CanvasLayer
 var busy: bool = false
 var near_npc: bool = false
@@ -85,92 +86,32 @@ func add_boundary(boundary: Rect2) -> void:
 
 
 func build_hud() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 5
-	add_child(layer)
-	var header := PanelContainer.new()
-	header.position = Vector2(12, 12)
-	header.add_theme_stylebox_override("panel", Dialogue.panel_style("253c39", "a98d59", 10))
-	layer.add_child(header)
-	var titles := VBoxContainer.new()
-	titles.add_theme_constant_override("separation", 0)
-	header.add_child(titles)
-	var title := Label.new()
-	title.text = "ЭЛЛАРА"
-	title.add_theme_color_override("font_color", Color("edcf91"))
-	title.add_theme_font_size_override("font_size", 15)
-	titles.add_child(title)
-	var subtitle := Label.new()
-	subtitle.text = location_title
-	subtitle.add_theme_font_size_override("font_size", 11)
-	subtitle.add_theme_color_override("font_color", Color("c8d0b7"))
-	titles.add_child(subtitle)
-	var help := Label.new()
-	help.text = "WASD — ходить   E — действие   J — журнал   I — инвентарь   Esc — пауза"
-	help.position = Vector2(14, 374)
-	help.add_theme_font_size_override("font_size", 12)
-	help.add_theme_color_override("font_color", Color("f3dfb5"))
-	help.add_theme_color_override("font_shadow_color", Color("292c2b"))
-	help.add_theme_constant_override("shadow_offset_x", 1)
-	help.add_theme_constant_override("shadow_offset_y", 1)
-	layer.add_child(help)
-	var badge := Label.new()
-	badge.text = "ПРОТОТИП  /  03"
-	badge.position = Vector2(513, 16)
-	badge.add_theme_font_size_override("font_size", 11)
-	badge.modulate = Color("d3c19c")
-	layer.add_child(badge)
-	wallet_label = Label.new()
-	wallet_label.position = Vector2(482, 37)
-	wallet_label.add_theme_font_size_override("font_size", 12)
-	wallet_label.add_theme_color_override("font_color", Color("f3dfb5"))
-	wallet_label.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "a98d59", 4))
-	layer.add_child(wallet_label)
-	prompt = Label.new()
+	hud = preload("res://scripts/game_hud.gd").new()
+	add_child(hud)
+	objective_label = hud.objective_label
+	wallet_label = hud.wallet_label
+	activity_label = hud.activity_label
+	prompt = make_prompt("E · " + npc_name, npc_prompt_at)
 	prompt.name = "NpcPrompt"
-	prompt.text = "E · " + npc_name
-	prompt.position = npc_prompt_at
-	prompt.z_index = 10
-	prompt.add_theme_font_size_override("font_size", 12)
-	prompt.add_theme_color_override("font_color", Color("fff0cc"))
-	prompt.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "b79c69", 5))
-	add_child(prompt)
-	work_prompt = Label.new()
-	work_prompt.text = "E · Рабочее место"
-	work_prompt.position = Vector2(584, 150)
-	work_prompt.z_index = 10
-	work_prompt.add_theme_font_size_override("font_size", 12)
-	work_prompt.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "b79c69", 5))
+	work_prompt = make_prompt("E · Рабочее место", Vector2(584, 150))
 	work_prompt.hide()
-	add_child(work_prompt)
+	portal_prompt = make_prompt("E · " + portal_label, portal_point + Vector2(-48, -48))
 
 
-	portal_prompt = Label.new()
-	portal_prompt.text = "E · " + portal_label
-	portal_prompt.position = portal_point + Vector2(-48, -48)
-	portal_prompt.z_index = 10
-	portal_prompt.add_theme_font_size_override("font_size", 12)
-	portal_prompt.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "b79c69", 5))
-	add_child(portal_prompt)
-	objective_label = Label.new()
-	objective_label.position = Vector2(14, 345)
-	objective_label.add_theme_font_size_override("font_size", 12)
-	objective_label.add_theme_color_override("font_color", Color("fff0cc"))
-	objective_label.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "a98d59", 4))
-	layer.add_child(objective_label)
-	activity_label = Label.new()
-	activity_label.position = Vector2(14, 316)
-	activity_label.add_theme_font_size_override("font_size", 12)
-	activity_label.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "a98d59", 4))
-	activity_label.hide()
-	layer.add_child(activity_label)
-	refresh_objective()
+func make_prompt(text: String, at: Vector2) -> Label:
+	var result := Label.new()
+	result.text = text
+	result.position = at
+	result.z_index = 10
+	result.add_theme_font_size_override("font_size", 12)
+	result.add_theme_color_override("font_color", Color("fff0cc"))
+	result.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "b79c69", 5))
+	add_child(result)
+	return result
 
 
 func refresh_objective() -> void:
-	objective_label.text = "J · " + state.objective()
-	wallet_label.text = "Медяки: %d" % state.personal_coins
-
+	hud.refresh()
 
 func npc_is_reachable() -> bool:
 	return player.position.distance_to(npc_point) <= 38.0
@@ -192,20 +133,27 @@ func _unhandled_input(event: InputEvent) -> void:
 		open_character_panel("inventory")
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("journal"):
-		player.set_controls_enabled(false)
-		dialogue.open("journal")
+		open_character_panel("quests")
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("interact"):
-		if near_guild_work():
-			open_character_panel("work")
-			get_viewport().set_input_as_handled()
-		elif near_npc:
-			player.set_controls_enabled(false)
-			dialogue.open(npc_mode)
-			get_viewport().set_input_as_handled()
-		elif near_portal:
-			get_viewport().set_input_as_handled()
-			travel()
+		get_viewport().set_input_as_handled()
+		interact()
+
+
+func interaction_text() -> String:
+	if near_guild_work(): return "Рабочее место"
+	if near_npc: return npc_name
+	if near_portal: return portal_label
+	return ""
+
+
+func interact() -> void:
+	if not can_manual_save() or get_tree().paused: return
+	if near_guild_work(): open_character_panel("work")
+	elif near_npc:
+		player.set_controls_enabled(false)
+		dialogue.open(npc_mode)
+	elif near_portal: travel()
 
 
 func travel() -> void:

@@ -10,6 +10,7 @@ func click_text(parent: Node, fragment: String) -> bool:
 		if child is Button and child.visible and not child.disabled and child.text.contains(fragment):
 			child.pressed.emit()
 			return true
+		if click_text(child, fragment): return true
 	return false
 
 func run_checks() -> void:
@@ -40,9 +41,9 @@ func run_checks() -> void:
 	check(not state.claim_side_reward("archive"), "Unfinished work cannot pay")
 	game.character_panel.close()
 	await key_press(KEY_J)
-	check(game.dialogue.status_label.text == "Активных: 2 · Завершённых: 0", "Journal counts concurrent quests accurately")
+	check(visible_text(game.character_panel).contains("Активные · 2") and visible_text(game.character_panel).contains("Завершённые · 0"), "Journal counts concurrent quests accurately")
 	await capture("journal-concurrent.png")
-	game.dialogue.close()
+	game.character_panel.close()
 	await interact(Vector2(650, 174))
 	check(game.character_panel.mode == "work", "Guild board is reachable")
 	check(click_text(game.character_panel.body, "архиве"), "Board starts archive mini-game")
@@ -112,7 +113,7 @@ func run_checks() -> void:
 	check(state.work_trust.mira == 2 and "permits_delivered" in state.npc_knowledge.mira, "Reporting delivery changes Mira's knowledge and work trust")
 	game.character_panel.close()
 	await key_press(KEY_J)
-	game.dialogue.options_button.pressed.emit()
+	game.character_panel.set_filter(true)
 	await frames()
 	await capture("all-quests.png")
 	check(game.character_panel.mode == "quests", "Journal lists all three quests")

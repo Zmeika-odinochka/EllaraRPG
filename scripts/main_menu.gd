@@ -1,6 +1,6 @@
 extends Control
 
-const UI = preload("res://scripts/quest_dialogue.gd")
+const UI = preload("res://scripts/ui_theme.gd")
 var state: Node
 var home: VBoxContainer
 var slot_panel: PanelContainer
@@ -14,6 +14,7 @@ var slot_mode: String = "load"
 var pending_action: String = ""
 var pending_slot: int = 0
 var continue_button: Button
+var confirm_no: Button
 
 
 func _ready() -> void:
@@ -22,6 +23,8 @@ func _ready() -> void:
 	state.game_active = false
 	build_ui()
 	refresh_home()
+	UI.trap_focus(home)
+	UI.focus_first(home)
 
 
 func label(text: String, size: int, color: String = "f1dfb1") -> Label:
@@ -33,19 +36,7 @@ func label(text: String, size: int, color: String = "f1dfb1") -> Label:
 
 
 func button(text: String) -> Button:
-	var result := Button.new()
-	result.text = text
-	result.custom_minimum_size.y = 36
-	result.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	result.add_theme_font_size_override("font_size", 14)
-	result.add_theme_color_override("font_color", Color("f1dfb1"))
-	result.add_theme_color_override("font_hover_color", Color.WHITE)
-	result.add_theme_color_override("font_disabled_color", Color("7f887c"))
-	result.add_theme_stylebox_override("normal", UI.panel_style("29463f", "9b8256", 7))
-	result.add_theme_stylebox_override("hover", UI.panel_style("416558", "d1b777", 7))
-	result.add_theme_stylebox_override("pressed", UI.panel_style("203a34", "d1b777", 7))
-	result.add_theme_stylebox_override("disabled", UI.panel_style("283733", "53635a", 7))
-	return result
+	return UI.button(text)
 
 
 func build_ui() -> void:
@@ -88,12 +79,12 @@ func build_slot_panel() -> void:
 	slot_panel = PanelContainer.new()
 	slot_panel.position = Vector2(20, 8)
 	slot_panel.custom_minimum_size = Vector2(600, 384)
-	slot_panel.add_theme_stylebox_override("panel", UI.panel_style("e4d1a6", "76543b", 14))
+	slot_panel.add_theme_stylebox_override("panel", UI.panel_style(UI.DARK, "50625a", 14))
 	add_child(slot_panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 5)
 	slot_panel.add_child(column)
-	slot_title = label("Сохранения", 20, "3f3a30")
+	slot_title = label("Сохранения", 20, UI.GOLD)
 	column.add_child(slot_title)
 	slot_rows = VBoxContainer.new()
 	slot_rows.add_theme_constant_override("separation", 4)
@@ -118,12 +109,12 @@ func build_confirmation() -> void:
 	confirm_overlay.add_child(center)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.x = 390
-	panel.add_theme_stylebox_override("panel", UI.panel_style("e4d1a6", "76543b", 18))
+	panel.add_theme_stylebox_override("panel", UI.panel_style(UI.DARK, UI.GOLD, 18))
 	center.add_child(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	panel.add_child(column)
-	confirm_text = label("", 16, "3f3a30")
+	confirm_text = label("", 16)
 	confirm_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(confirm_text)
 	var row := HBoxContainer.new()
@@ -134,6 +125,7 @@ func build_confirmation() -> void:
 	confirm_yes.pressed.connect(confirm_action)
 	row.add_child(confirm_yes)
 	var no := button("Отмена")
+	confirm_no = no
 	no.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	no.pressed.connect(close_confirmation)
 	row.add_child(no)
@@ -160,11 +152,14 @@ func open_slots(mode: String) -> void:
 	slot_panel.show()
 	slot_title.text = "Выберите слот для новой игры" if mode == "new" else "Загрузить игру"
 	refresh_slots()
+	UI.trap_focus(slot_panel)
+	focus_slot()
 
 
 func refresh_slots() -> void:
 	for child in slot_rows.get_children():
 		child.queue_free()
+		slot_rows.remove_child(child)
 	for entry in state.slots():
 		var slot := int(entry.slot)
 		var row := HBoxContainer.new()
@@ -184,12 +179,16 @@ func refresh_slots() -> void:
 		remove.disabled = not entry.occupied
 		remove.pressed.connect(request_delete.bind(slot))
 		row.add_child(remove)
+	UI.trap_focus(slot_panel)
+	focus_slot()
 
 
 func close_slots() -> void:
 	slot_panel.hide()
 	home.show()
 	refresh_home()
+	UI.trap_focus(home)
+	UI.focus_first(home)
 
 
 func continue_recent() -> void:
@@ -208,7 +207,8 @@ func select_slot(slot: int, occupied: bool) -> void:
 		confirm_text.text = "Перезаписать слот %d и начать новую игру? Текущий прогресс этого слота будет заменён." % slot
 		confirm_yes.text = "Перезаписать"
 		confirm_overlay.show()
-		confirm_yes.grab_focus()
+		UI.trap_focus(confirm_overlay)
+		confirm_no.grab_focus()
 	else:
 		state.start_new_game(slot)
 
@@ -219,7 +219,8 @@ func request_delete(slot: int) -> void:
 	confirm_text.text = "Удалить сохранение из слота %d? Это действие нельзя отменить." % slot
 	confirm_yes.text = "Удалить"
 	confirm_overlay.show()
-	confirm_yes.grab_focus()
+	UI.trap_focus(confirm_overlay)
+	confirm_no.grab_focus()
 
 
 func confirm_action() -> void:
@@ -239,6 +240,13 @@ func close_confirmation() -> void:
 	pending_action = ""
 	pending_slot = 0
 	confirm_overlay.hide()
+	UI.trap_focus(slot_panel)
+	focus_slot()
+
+
+func focus_slot() -> void:
+	var choices := UI.focusable_buttons(slot_panel)
+	if not choices.is_empty(): choices[0].grab_focus()
 
 
 func _unhandled_input(event: InputEvent) -> void:

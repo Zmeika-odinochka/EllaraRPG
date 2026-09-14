@@ -1,7 +1,7 @@
 extends CanvasLayer
 ## Work requires deliberate answers; time alone never grants completion.
 signal finished(success: bool)
-const UI = preload("res://scripts/quest_dialogue.gd")
+const UI = preload("res://scripts/ui_theme.gd")
 var is_open := false
 var activity := ""
 var step := 0
@@ -17,6 +17,8 @@ var choices: HBoxContainer
 var track: Control
 var marker: ColorRect
 var answer_buttons: Array[Button] = []
+var panel: PanelContainer
+var cancel_button: Button
 
 func _ready() -> void:
 	layer = 25
@@ -27,16 +29,16 @@ func _ready() -> void:
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
-	var panel := PanelContainer.new()
+	panel = PanelContainer.new()
 	panel.custom_minimum_size = Vector2(548, 300)
-	panel.add_theme_stylebox_override("panel", UI.panel_style("e7d5ab", "72523b", 18))
+	panel.add_theme_stylebox_override("panel", UI.panel_style(UI.DARK, "50625a", 18))
 	center.add_child(panel)
 	column = VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	panel.add_child(column)
-	title = add_label(22, "3c3930")
-	instruction = add_label(14, "65533f")
-	prompt = add_label(20, "35554b")
+	title = add_label(22, UI.GOLD)
+	instruction = add_label(14, UI.MUTED)
+	prompt = add_label(20, UI.PAPER)
 	track = Control.new()
 	track.custom_minimum_size = Vector2(480, 30)
 	column.add_child(track)
@@ -61,8 +63,9 @@ func _ready() -> void:
 		b.pressed.connect(answer.bind(index))
 		choices.add_child(b)
 		answer_buttons.append(b)
-	feedback = add_label(13, "65533f")
+	feedback = add_label(13, UI.MUTED)
 	var cancel := make_button("Отменить работу · Q")
+	cancel_button = cancel
 	cancel.pressed.connect(cancel_game)
 	column.add_child(cancel)
 	hide()
@@ -76,13 +79,9 @@ func add_label(size: int, color: String) -> Label:
 	return label
 
 func make_button(text: String) -> Button:
-	var b := Button.new()
-	b.text = text
+	var b := UI.button(text)
 	b.custom_minimum_size.y = 36
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.add_theme_font_size_override("font_size", 14)
-	b.add_theme_stylebox_override("normal", UI.panel_style("35554b", "72523b", 7))
-	b.add_theme_stylebox_override("hover", UI.panel_style("496e59", "d1b777", 7))
 	return b
 
 func open_game(id: String) -> void:
@@ -126,6 +125,8 @@ func open_game(id: String) -> void:
 			answer_buttons[index].text = str(names[index]) if id == "canopy" else "%d · %s" % [index + 1, names[index]]
 	update_prompt()
 	show()
+	UI.trap_focus(panel)
+	answer_buttons[0].grab_focus()
 
 func update_prompt() -> void:
 	prompt.text = "%d / %d · %s" % [step, sequence.size(), sequence[step][0]]

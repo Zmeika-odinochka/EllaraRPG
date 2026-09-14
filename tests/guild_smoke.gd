@@ -49,6 +49,14 @@ func capture(filename: String) -> void:
 	check(result == OK, "Screenshot " + filename)
 
 
+func visible_text(node: Node) -> String:
+	var result := ""
+	if node is Control and not node.is_visible_in_tree(): return result
+	if node is Label or node is Button: result += node.text + "\n"
+	for child in node.get_children(): result += visible_text(child)
+	return result
+
+
 func solve_activity(world: Node) -> void:
 	var activity = world.activity_game
 	var guard := 0
@@ -79,6 +87,7 @@ func run_checks() -> void:
 	var player = game.player
 	if "--preview-mira" in OS.get_cmdline_user_args():
 		player.position = Vector2(384, 205)
+		DisplayServer.window_set_title("EllaraRPG · Проверка интерфейса")
 		return
 	check(not game.dialogue.is_open, "Dialogue starts closed")
 	await capture("guild-room.png")
