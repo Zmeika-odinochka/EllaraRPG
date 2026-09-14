@@ -1,6 +1,7 @@
 extends Node2D
 
 const Dialogue = preload("res://scripts/quest_dialogue.gd")
+const PauseMenu = preload("res://scripts/pause_menu.gd")
 @onready var player: CharacterBody2D = $Actors/Player
 @onready var actors: Node2D = $Actors
 var state: Node
@@ -10,6 +11,7 @@ var portal_prompt: Label
 var objective_label: Label
 var wallet_label: Label
 var activity_label: Label
+var pause_menu: CanvasLayer
 var busy: bool = false
 var near_npc: bool = false
 var near_portal: bool = false
@@ -37,7 +39,12 @@ func _ready() -> void:
 	dialogue = Dialogue.new()
 	add_child(dialogue)
 	dialogue.closed.connect(_on_dialogue_closed)
+	pause_menu = PauseMenu.new()
+	add_child(pause_menu)
 	state.quest_changed.connect(refresh_objective)
+	if state.transition_autosave_pending:
+		state.transition_autosave_pending = false
+		state.autosave("transition")
 
 
 func configure_location() -> void:
@@ -85,7 +92,7 @@ func build_hud() -> void:
 	subtitle.add_theme_color_override("font_color", Color("c8d0b7"))
 	titles.add_child(subtitle)
 	var help := Label.new()
-	help.text = "WASD / стрелки — ходить    E — действие    J — журнал"
+	help.text = "WASD / стрелки — ходить   E — действие   J — журнал   Esc — пауза"
 	help.position = Vector2(14, 374)
 	help.add_theme_font_size_override("font_size", 12)
 	help.add_theme_color_override("font_color", Color("f3dfb5"))
@@ -177,9 +184,11 @@ func travel() -> void:
 	transitioning = true
 	player.set_controls_enabled(false)
 	state.pending_spawn = portal_spawn
+	state.transition_autosave_pending = true
 	var result: int = get_tree().change_scene_to_file(portal_scene)
 	if result != OK:
 		state.pending_spawn = Vector2.INF
+		state.transition_autosave_pending = false
 		transitioning = false
 		player.set_controls_enabled(true)
 		objective_label.text = "Не удалось открыть локацию. Попробуйте ещё раз."
@@ -188,3 +197,7 @@ func travel() -> void:
 
 func _on_dialogue_closed() -> void:
 	player.set_controls_enabled(true)
+
+
+func can_manual_save() -> bool:
+	return not transitioning and not busy and not dialogue.is_open

@@ -88,7 +88,7 @@ func _ready() -> void:
 	buttons.add_theme_constant_override("separation", 10)
 	column.add_child(buttons)
 	accept_button = make_button("Принять")
-	close_button = make_button("Закрыть · Esc")
+	close_button = make_button("Закрыть")
 	buttons.add_child(accept_button)
 	buttons.add_child(close_button)
 	accept_button.pressed.connect(_accept)
@@ -101,7 +101,7 @@ func refresh() -> void:
 	var available: bool = phase == state.QuestStage.AVAILABLE
 	accept_button.hide()
 	accept_button.text = "Принять"
-	close_button.text = "Закрыть · Esc"
+	close_button.text = "Закрыть"
 	title_label.text = "Подготовка ярмарки"
 	detail_label.text = "Награда: 18 медяков лично тебе.\nСрок: до начала завтрашней ярмарки.\nРасчёт: у Миры после подписи Корвина."
 	status_label.text = "Задание ещё не принято" if available else state.objective()
@@ -111,7 +111,7 @@ func refresh() -> void:
 			if available:
 				body_label.text = "«Есть работа на площади для одного человека. Если берёшься, найди Корвина — он объяснит, что сделать»."
 				accept_button.show()
-				close_button.text = "Отказаться · Esc"
+				close_button.text = "Отказаться"
 			elif phase == state.QuestStage.ACCEPTED:
 				body_label.text = "«Записала поручение за тобой. Корвин у торговых навесов на площади. Выход — внизу зала»."
 			elif phase == state.QuestStage.APPROVED:
@@ -205,6 +205,6 @@ func close() -> void:
 func _input(event: InputEvent) -> void:
 	if not is_open or event.is_echo():
 		return
-	if event.is_action_pressed("close_dialogue") or (mode == "journal" and event.is_action_pressed("journal")):
+	if mode == "journal" and event.is_action_pressed("journal"):
 		close()
 		get_viewport().set_input_as_handled()

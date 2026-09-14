@@ -4,7 +4,7 @@ config_version=5
 
 [application]
 config/name="EllaraRPG"
-run/main_scene="res://scenes/guild.tscn"
+run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 

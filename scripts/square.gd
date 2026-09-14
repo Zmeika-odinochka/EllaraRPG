@@ -49,7 +49,7 @@ func _process(delta: float) -> void:
 		work_spots[step_id].update_status(step_id in state.completed_steps, active, selected_step == step_id, state.WORK_STEPS[step_id])
 	if busy:
 		work_elapsed += delta
-		activity_label.text = "%s · %d%% · Esc — отменить" % [state.WORK_STEPS[working_step], mini(100, int(work_elapsed / WORK_DURATION * 100))]
+		activity_label.text = "%s · %d%% · Q — отменить" % [state.WORK_STEPS[working_step], mini(100, int(work_elapsed / WORK_DURATION * 100))]
 		if work_elapsed >= WORK_DURATION:
 			state.finish_work(working_step)
 			stop_work()
@@ -59,7 +59,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
 	if busy:
-		if event.is_action_pressed("close_dialogue"):
+		if event.is_action_pressed("cancel_work"):
 			stop_work()
 			get_viewport().set_input_as_handled()
 		return
