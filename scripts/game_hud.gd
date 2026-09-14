@@ -6,6 +6,8 @@ var objective_label: Label
 var activity_label: Label
 var action_button: Button
 var toast: Label
+var toast_panel: PanelContainer
+var toast_icon: Label
 var toast_remaining := 0.0
 var previous_coins := 0
 var controls: Control
@@ -41,13 +43,22 @@ func _ready() -> void:
 	activity_label = UI.label("", 12)
 	activity_label.hide()
 	controls.add_child(activity_label)
-	toast = UI.label("", 12, UI.GOLD)
-	toast.position = Vector2(198, 63)
-	toast.size = Vector2(244, 40)
-	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	toast.add_theme_stylebox_override("normal", UI.panel_style(UI.DARK, "50625a", 8))
-	toast.hide()
-	add_child(toast)
+	toast_panel = UI.box(UI.DARK, 6)
+	toast_panel.position = Vector2(12, 75)
+	toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(toast_panel)
+	var toast_row := HBoxContainer.new()
+	toast_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toast_row.add_theme_constant_override("separation", 6)
+	toast_panel.add_child(toast_row)
+	toast_icon = UI.label("◆", 11, UI.GOLD)
+	toast_icon.custom_minimum_size.x = 12
+	toast_icon.autowrap_mode = TextServer.AUTOWRAP_OFF
+	toast_row.add_child(toast_icon)
+	toast = UI.label("", 10, UI.PAPER)
+	toast.custom_minimum_size.x = 156
+	toast_row.add_child(toast)
+	toast_panel.hide()
 	state.save_finished.connect(on_saved)
 	state.save_failed.connect(on_save_failed)
 	refresh()
@@ -63,18 +74,24 @@ func refresh() -> void:
 func show_toast(text: String, duration: float = 3.0) -> void:
 	toast.text = text
 	toast_remaining = duration
-	toast.show()
+	toast_icon.text = "+" if text.begins_with("Получено") else "◆"
+	toast_icon.add_theme_color_override("font_color", Color(UI.GOLD))
+	toast_panel.size = Vector2.ZERO
+	toast_panel.modulate.a = 1.0
+	toast_panel.visible = not world.dialogue.is_open and not world.character_panel.is_open and not world.busy
 
 func on_saved(slot: int, reason: String) -> void:
 	if reason == "reward" and toast_remaining > 0:
-		toast.text += "\nПрогресс сохранён · Слот %d" % slot
+		return # The reward notice already represents this saved event.
 	elif reason == "work":
-		show_toast("Работа выполнена\nСохранено · Слот %d" % slot)
+		show_toast("Работа выполнена")
 	else:
 		show_toast("Сохранено · Слот %d" % slot, 2.5)
 
 func on_save_failed(message: String) -> void:
 	show_toast(message, 8.0)
+	toast_icon.text = "!"
+	toast_icon.add_theme_color_override("font_color", Color("e5a18c"))
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(world.character_panel): return
@@ -83,7 +100,9 @@ func _process(delta: float) -> void:
 	action_button.visible = not action.is_empty()
 	action_button.text = "E · " + action
 	if toast_remaining > 0:
-		toast.visible = controls.visible
-		if controls.visible: toast_remaining -= delta
+		toast_panel.visible = controls.visible
+		if controls.visible:
+			toast_remaining -= delta
+			toast_panel.modulate.a = minf(1.0, toast_remaining / 0.35)
 	else:
-		toast.hide()
+		toast_panel.hide()

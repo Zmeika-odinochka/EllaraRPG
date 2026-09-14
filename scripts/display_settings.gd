@@ -26,6 +26,10 @@ func usable_screen() -> Rect2i:
 	if DisplayServer.get_name() == "headless": return Rect2i(0, 0, 1920, 1080)
 	return DisplayServer.screen_get_usable_rect(get_tree().root.current_screen)
 
+func monitor_size() -> Vector2i:
+	if DisplayServer.get_name() == "headless": return Vector2i(1920, 1080)
+	return DisplayServer.screen_get_size(get_tree().root.current_screen)
+
 func fits_window(value: Vector2i) -> bool:
 	var usable := usable_screen().size - Vector2i(16, 48)
 	return value.x <= usable.x and value.y <= usable.y

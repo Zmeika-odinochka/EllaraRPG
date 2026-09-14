@@ -11,7 +11,7 @@ func _ready() -> void:
 	label = Label.new()
 	label.position = Vector2(-78, -55)
 	label.add_theme_font_size_override("font_size", 11)
-	label.add_theme_stylebox_override("normal", preload("res://scripts/quest_dialogue.gd").panel_style("253c39", "d1b777", 5))
+	label.add_theme_stylebox_override("normal", preload("res://scripts/ui_theme.gd").panel_style("253c39", "d1b777", 5))
 	label.z_index = 12
 	label.hide()
 	add_child(label)

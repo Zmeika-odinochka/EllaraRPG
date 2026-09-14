@@ -82,7 +82,7 @@ func run_checks() -> void:
 	await key_press(KEY_E)
 	check(state.quest_stage == state.QuestStage.MET_CORVIN, "Talking to Corvin records meeting")
 	check(quest_events == 2, "Meeting emits one state change")
-	check(game.dialogue.status_label.text.contains("Награда ещё не получена"), "Meeting does not award reward")
+	check(state.personal_coins == 0 and game.dialogue.body_label.text.contains("после моей подписи"), "Meeting does not award reward")
 	await capture("corvin-dialogue.png")
 	game.dialogue.close_button.pressed.emit()
 	await frames()

@@ -1,6 +1,7 @@
 extends Node2D
 
 const Dialogue = preload("res://scripts/quest_dialogue.gd")
+const UI = preload("res://scripts/ui_theme.gd")
 const PauseMenu = preload("res://scripts/pause_menu.gd")
 const CharacterPanel = preload("res://scripts/character_panel.gd")
 const ActivityGame = preload("res://scripts/activity_game.gd")
@@ -45,7 +46,6 @@ func _ready() -> void:
 	dialogue = Dialogue.new()
 	add_child(dialogue)
 	dialogue.closed.connect(_on_dialogue_closed)
-	dialogue.options_requested.connect(open_character_panel)
 	character_panel = CharacterPanel.new()
 	add_child(character_panel)
 	character_panel.closed.connect(_on_dialogue_closed)
@@ -103,7 +103,7 @@ func make_prompt(text: String, at: Vector2) -> Label:
 	result.z_index = 10
 	result.add_theme_font_size_override("font_size", 12)
 	result.add_theme_color_override("font_color", Color("fff0cc"))
-	result.add_theme_stylebox_override("normal", Dialogue.panel_style("253c39", "b79c69", 5))
+	result.add_theme_stylebox_override("normal", UI.panel_style("253c39", "b79c69", 5))
 	add_child(result)
 	return result
 

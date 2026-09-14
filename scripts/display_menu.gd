@@ -15,6 +15,8 @@ var previous_focus: WeakRef
 var revert_button: Button
 var apply_button: Button
 var title: Label
+var resolution_label: Label
+var window_choice := 1
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -44,8 +46,11 @@ func _ready() -> void:
 	mode_choice.add_item("На весь экран")
 	mode_choice.item_selected.connect(func(_index): update_note())
 	options.add_child(mode_choice)
-	options.add_child(UI.label("Разрешение окна · 16:9", 12, UI.MUTED))
+	resolution_label = UI.label("Разрешение окна · 16:9", 12, UI.MUTED)
+	options.add_child(resolution_label)
 	resolution_choice = choice()
+	resolution_choice.item_selected.connect(func(index):
+		if mode_choice.selected == 0: window_choice = index)
 	for value in settings.RESOLUTIONS:
 		resolution_choice.add_item("%d × %d" % [value.x, value.y])
 	options.add_child(resolution_choice)
@@ -101,20 +106,33 @@ func show_options() -> void:
 	options.show()
 	confirmation.hide()
 	mode_choice.select(1 if settings.fullscreen else 0)
-	resolution_choice.select(settings.RESOLUTIONS.find(settings.resolution))
-	for index in range(settings.RESOLUTIONS.size()):
-		resolution_choice.set_item_disabled(index, not settings.fits_window(settings.RESOLUTIONS[index]))
+	window_choice = settings.RESOLUTIONS.find(settings.resolution)
 	update_note()
 	UI.trap_focus(panel)
 	mode_choice.grab_focus()
 
 func update_note() -> void:
 	resolution_choice.disabled = mode_choice.selected == 1
-	note.text = "На весь экран — разрешение монитора. Формат игры 16:9 сохраняется." if resolution_choice.disabled else "Чёткие пиксели без размытия. Недоступные размеры не помещаются на этом мониторе."
+	resolution_choice.clear()
+	var native: Vector2i = settings.monitor_size()
+	if resolution_choice.disabled:
+		resolution_label.text = "Разрешение полного экрана"
+		resolution_choice.add_item("%d × %d · монитор" % [native.x, native.y])
+		resolution_choice.select(0)
+		note.text = "Используется всё разрешение монитора. Пиксели чёткие, пропорции сцены 16:9 сохраняются."
+	else:
+		resolution_label.text = "Разрешение окна · 16:9"
+		for value in settings.RESOLUTIONS:
+			var index := resolution_choice.item_count
+			resolution_choice.add_item("%d × %d" % [value.x, value.y])
+			resolution_choice.set_item_disabled(index, not settings.fits_window(value))
+		resolution_choice.select(window_choice)
+		note.text = "Монитор: %d × %d. Большим окнам мешают рамка и панель задач. Для полного разрешения выбери «На весь экран»." % [native.x, native.y]
 	UI.trap_focus.call_deferred(panel)
 
 func preview() -> void:
-	if not settings.begin_preview(settings.RESOLUTIONS[resolution_choice.selected], mode_choice.selected == 1):
+	var selected: Vector2i = settings.resolution if mode_choice.selected == 1 else settings.RESOLUTIONS[resolution_choice.selected]
+	if not settings.begin_preview(selected, mode_choice.selected == 1):
 		note.text = "Этот размер недоступен. Выбери меньшее разрешение."
 		return
 	seconds_left = 15.0
