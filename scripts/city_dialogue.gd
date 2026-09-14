@@ -16,6 +16,10 @@ var status: Label
 var buy_button: Button
 var next_button: Button
 var close_button: Button
+var books_box: VBoxContainer
+var books_info: Label
+var selected_book := "book_observation"
+var book_buttons: Dictionary = {}
 
 func _ready() -> void:
 	layer = 23
@@ -70,6 +74,21 @@ func _ready() -> void:
 	item.add_child(purse)
 	status = UI.label("",11,UI.MUTED)
 	item.add_child(status)
+	books_box = VBoxContainer.new()
+	books_box.add_theme_constant_override("separation",8)
+	column.add_child(books_box)
+	var book_row := HBoxContainer.new()
+	books_box.add_child(book_row)
+	for id in state.Progress.BOOKS:
+		var book: Dictionary = state.Progress.BOOKS[id]
+		var choice := UI.button("%s\n%d медяка" % [book.name,book.price],true)
+		choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		choice.add_theme_font_size_override("font_size",11)
+		choice.pressed.connect(func(): selected_book=id; refresh())
+		book_row.add_child(choice)
+		book_buttons[id] = choice
+	books_info = UI.label("",12)
+	books_box.add_child(books_info)
 	buy_button = UI.button("Купить · 24 медяка")
 	buy_button.pressed.connect(buy)
 	column.add_child(buy_button)
@@ -97,19 +116,36 @@ func refresh() -> void:
 	portrait.queue_redraw()
 	var merchant := npc_id == "smith"
 	offer.visible = merchant
-	buy_button.visible = merchant
+	books_box.visible = npc_id=="bookseller"
+	buy_button.visible = merchant or books_box.visible
 	next_button.visible = line_index+1 < City.NPCS[npc_id].lines.size()
 	var owned: bool = state.inventory.has("simple_dagger")
 	purse.text = "В кошельке: %d медяков" % state.personal_coins
 	buy_button.disabled = owned or state.personal_coins<24
 	buy_button.text = "Уже куплено" if owned else "Купить · 24 медяка"
 	status.text = "Твой кинжал в сумке." if owned else ("Не хватает %d медяков" % (24-state.personal_coins) if state.personal_coins<24 else "Один клинок в наличии. Можно экипировать после покупки.")
+	if books_box.visible:
+		var book: Dictionary = state.Progress.BOOKS[selected_book]
+		var has_book: bool = state.inventory.has(selected_book)
+		buy_button.disabled = has_book or state.personal_coins<book.price
+		buy_button.text = "Уже в сумке" if has_book else "Купить · %d медяка" % book.price
+		books_info.text = "%s\nИнтеллект %d для изучения · У тебя %d\nВ кошельке: %d медяков%s" % [book.effect,book.intellect,int(state.attributes["Интеллект"]),state.personal_coins," · Не хватает денег" if state.personal_coins<book.price and not has_book else ""]
+		for id in book_buttons:
+			book_buttons[id].add_theme_stylebox_override("normal",UI.panel_style("405b51" if id==selected_book else "30494a",UI.GOLD if id==selected_book else "50625a",6))
 	panel.reset_size.call_deferred()
 	UI.trap_focus.call_deferred(panel)
 	if next_button.has_focus() and not next_button.visible: close_button.grab_focus()
 
 func buy() -> void:
-	if not is_open or npc_id != "smith" or get_tree().paused: return
+	if not is_open or get_tree().paused: return
+	if npc_id=="bookseller":
+		var success: bool = state.buy_book(selected_book)
+		refresh()
+		if success: speech.text = "Забирай. Не спеши перелистывать — толк бывает и на полях."
+		elif not buy_button.disabled: books_info.text += "\nНе удалось сохранить покупку. Деньги остались у тебя."
+		close_button.grab_focus()
+		return
+	if npc_id != "smith": return
 	if not state.buy_dagger():
 		refresh()
 		if not buy_button.disabled: status.text = "Покупка не записана. Деньги остались у тебя."

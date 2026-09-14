@@ -44,7 +44,7 @@ func blade(at: Vector2) -> void:
 	box(Rect2(at+Vector2(0,27),Vector2(3,8)),"8f6747")
 
 func _draw() -> void:
-	var indoor := district == City.ARMORY
+	var indoor := district in [City.ARMORY,City.BOOKSHOP]
 	var palette := ["aaa28b","a9a38c","aea68f","a69f88"]
 	if district == City.CRAFT: palette = ["92917e","969380","8f907c","94917d"]
 	if district == City.TEMPLE: palette = ["b0b4a2","adb2a0","b5b6a3","aeb39f"]
@@ -59,7 +59,8 @@ func _draw() -> void:
 			box(Rect2(left,y,mini(x+22,744)-left,14),color)
 			if (x*7+y*3)%13==0: box(Rect2(left+6,y+8,7,1),"8d907b" if not indoor else "68583f")
 	if indoor:
-		draw_armory()
+		if district==City.BOOKSHOP: draw_bookshop()
+		else: draw_armory()
 		return
 	for r in Layout.obstacles(district):
 		if district == City.GATES and r.position.y>=288:
@@ -72,6 +73,11 @@ func _draw() -> void:
 			box(Rect2(r.position,r.size-Vector2(0,6)),"aba990")
 	match district:
 		City.MARKET:
+			door(Vector2(144,224))
+			box(Rect2(80,142,112,20),"344b45")
+			text(Vector2(91,156),"Книжная лавка")
+			box(Rect2(196,176,15,19),"788b70")
+			box(Rect2(199,178,2,15),"eddfbc")
 			door(Vector2(360,200))
 			box(Rect2(294,125,134,20),"344b45")
 			text(Vector2(309,139),"У старого клинка")
@@ -111,6 +117,30 @@ func _draw() -> void:
 			lamp(Vector2(311,317)); lamp(Vector2(457,317))
 			text(Vector2(330,310),"СТАРАЯ ДОРОГА")
 			shrub(Vector2(232,413),"64745c"); shrub(Vector2(551,409),"64745c")
+
+func draw_bookshop() -> void:
+	for r in Layout.obstacles(district):
+		box(r,"414439")
+		box(Rect2(r.position+Vector2(2,2),r.size-Vector2(4,5)),"79634a")
+	for x in [130,554]:
+		for y in [115,140,165]:
+			for i in range(10):
+				box(Rect2(x+i*8,y+(i%3)*2,6,18-(i%3)*2),["788b70","9a795a","777e98","b2a079"][i%4])
+	box(Rect2(292,167,184,25),"9b825b")
+	box(Rect2(322,165,22,14),"eddfbc")
+	box(Rect2(345,165,22,14),"c7b793")
+	box(Rect2(340,165,2,15),"71634b")
+	box(Rect2(411,167,9,9),"2e3934")
+	draw_line(Vector2(416,168),Vector2(422,155),Color("cec7a3"),2)
+	box(Rect2(148,257,25,14),"c3b38b")
+	box(Rect2(175,257,24,14),"e0d1a7")
+	box(Rect2(169,257,3,14),"6d5b42")
+	for x in range(553,630,22): box(Rect2(x,271,18,14),"8d7761")
+	lamp(Vector2(244,142)); lamp(Vector2(516,142)); lamp(Vector2(226,272))
+	box(Rect2(330,339,108,83),"576659")
+	for y in [342,416]: box(Rect2(333,y,102,3),"a89f79")
+	text(Vector2(282,107),"ПЕРЕПЛЁТЫ И ПОЛЕВЫЕ ЗАПИСКИ")
+	text(Vector2(286,137),"Не торопись. Здесь можно полистать.","c4b38d")
 
 func draw_armory() -> void:
 	for r in Layout.obstacles(district):

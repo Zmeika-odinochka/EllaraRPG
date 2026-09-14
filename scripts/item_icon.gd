@@ -12,6 +12,16 @@ func rect(x: int, y: int, w: int, h: int, color: String) -> void:
 func _draw() -> void:
 	var origin := ((size - Vector2(32, 32)) * 0.5).floor()
 	draw_set_transform(origin)
+	if kind in preload("res://scripts/progression_catalog.gd").BOOKS:
+		var color: String = preload("res://scripts/progression_catalog.gd").BOOKS[kind].color
+		rect(6,4,22,25,"182d2d")
+		rect(5,3,22,25,color)
+		rect(7,5,3,21,"4b5041")
+		rect(10,25,16,2,"eddfbc")
+		rect(13,9,10,1,"eddfbc")
+		rect(14,13,8,1,"c9bf97")
+		rect(20,23,2,7,"a87757")
+		return
 	match kind:
 		"simple_dagger":
 			rect(14,3,5,19,"354542")

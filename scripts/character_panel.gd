@@ -123,11 +123,11 @@ func refresh() -> void:
 		close_button.grab_focus()
 
 func make_details(parent: Node, journal: bool = false) -> void:
-	var box := UI.box()
+	var box := UI.box(UI.PANEL,10)
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(box)
 	details = VBoxContainer.new()
-	details.add_theme_constant_override("separation", 6)
+	details.add_theme_constant_override("separation", 5)
 	if not journal:
 		box.add_child(details)
 		return
@@ -175,7 +175,7 @@ func build_inventory() -> void:
 		icon.kind = id
 		b.add_child(icon)
 		icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		var count := UI.label(str(state.inventory[id]), 11, UI.GOLD)
+		var count := UI.label("✓" if id in state.studied_books else str(int(state.inventory[id])), 11, UI.GOLD)
 		count.position = Vector2(31, 29)
 		count.size = Vector2(12, 15)
 		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -199,16 +199,27 @@ func show_item(id: String) -> void:
 		return
 	selected_item = id
 	UI.clear(details)
-	details.add_child(UI.label("ОРУЖИЕ" if id == "simple_dagger" else ("НАХОДКА" if id == "watch_notes" else "ПРЕДМЕТ ПОРУЧЕНИЯ"), 11, UI.MUTED))
-	details.add_child(UI.label(Catalog.ITEMS[id].name, 18, UI.GOLD))
+	details.add_child(UI.label("КНИГА" if id in state.Progress.BOOKS else ("ОРУЖИЕ" if id == "simple_dagger" else ("НАХОДКА" if id == "watch_notes" else "ПРЕДМЕТ ПОРУЧЕНИЯ")), 11, UI.MUTED))
+	details.add_child(UI.label(Catalog.ITEMS[id].name, 16 if id in state.Progress.BOOKS else 18, UI.GOLD))
 	info = UI.label(Catalog.ITEMS[id].description)
 	details.add_child(info)
-	details.add_child(UI.label("Количество: %d" % int(state.inventory.get(id, 0)), 12, UI.MUTED))
+	if id not in state.Progress.BOOKS: details.add_child(UI.label("Количество: %d" % int(state.inventory.get(id, 0)), 12, UI.MUTED))
 	if id == "simple_dagger":
 		details.add_child(UI.label("Базовый урон: %d" % state.Weapons.DAGGER.base_damage,12,UI.GOLD))
 		var equip := UI.button("Снять оружие" if state.equipped_weapon == id else "Экипировать",true)
 		equip.pressed.connect(toggle_weapon)
 		details.add_child(equip)
+		UI.trap_focus.call_deferred(panel)
+	if id in state.Progress.BOOKS:
+		var book: Dictionary = state.Progress.BOOKS[id]
+		info.add_theme_font_size_override("font_size",11)
+		details.add_child(UI.label(book.effect,11,UI.GOLD))
+		var learned: bool = id in state.studied_books
+		details.add_child(UI.label("Изучено" if learned else "Для изучения: Интеллект %d · У тебя %d" % [book.intellect,int(state.attributes["Интеллект"])],11,UI.MUTED))
+		var study := UI.button("Изучено" if learned else "Изучить книгу",true)
+		study.disabled = learned or int(state.attributes["Интеллект"])<book.intellect
+		study.pressed.connect(func(): state.study_book(id); close_button.grab_focus())
+		details.add_child(study)
 		UI.trap_focus.call_deferred(panel)
 	for key in item_buttons:
 		item_buttons[key].add_theme_stylebox_override("normal", UI.panel_style("405b51" if key == id else "30494a", UI.GOLD if key == id else "50625a", 6))
@@ -233,7 +244,7 @@ func build_hero() -> void:
 	left.add_theme_constant_override("separation", 5)
 	portrait_box.add_child(left)
 	left.add_child(UI.label("Филипп", 18, UI.GOLD))
-	left.add_child(UI.label("Уровень 1 · Ранг F", 12))
+	left.add_child(UI.label("Искатель · Ранг F", 12))
 	var canvas := Control.new()
 	canvas.custom_minimum_size.y = 76
 	left.add_child(canvas)
@@ -250,21 +261,33 @@ func build_hero() -> void:
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 6)
+	grid.add_theme_constant_override("v_separation", 4)
 	right.add_child(grid)
 	for key in state.BASE_STATS:
-		var card := UI.box(UI.PANEL, 5)
+		var card := UI.box(UI.PANEL, 3)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.add_child(card)
+		var values := VBoxContainer.new()
+		values.add_theme_constant_override("separation",0)
+		card.add_child(values)
 		var pair := HBoxContainer.new()
-		card.add_child(pair)
-		var name_label := UI.label(key, 12)
+		values.add_child(pair)
+		var name_label := UI.label(key, 11)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		pair.add_child(name_label)
-		var value := UI.label(str(state.attributes.get(key, 0)), 15, UI.GOLD)
+		var value := UI.label(str(int(state.attributes.get(key, 0))), 12, UI.GOLD)
 		value.custom_minimum_size.x = 20
+		value.autowrap_mode = TextServer.AUTOWRAP_OFF
 		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		pair.add_child(value)
+		values.add_child(UI.label("XP %d / %d" % [state.attribute_xp.get(key,0),state.attribute_thresholds.get(key,10)],9,UI.MUTED))
+		card.tooltip_text = state.Progress.stat_effect(key,int(state.attributes.get(key,0)))
+	body.add_child(UI.label("ПРАКТИКА",11,UI.MUTED))
+	for id in ["Сила","Координация","Интеллект"]:
+		body.add_child(UI.label(id+": "+state.Progress.stat_effect(id,int(state.attributes[id])),11))
+	body.add_child(UI.label("НАВЫКИ",11,UI.MUTED))
+	if state.skills.is_empty(): body.add_child(UI.label("Пока нет изученных навыков. Книги можно найти на торговой улице.",11))
+	for id in state.skills: body.add_child(UI.label(state.Progress.SKILLS[id].name+" · "+state.Progress.SKILLS[id].description,12,UI.GOLD))
 
 func toggle_weapon() -> void:
 	state.set_equipped_weapon("simple_dagger" if state.equipped_weapon == "" else "")

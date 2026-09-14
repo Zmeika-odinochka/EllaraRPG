@@ -252,6 +252,7 @@ func resolve_swing() -> void:
 		enemy.collision_layer = 0
 		enemy.collision_mask = 0
 		state.post_guard_defeated = true
+		state.award_event("combat:post_guard")
 		state.autosave("combat")
 		world.hud.show_toast("Караульная затихла", 3.0)
 	# Damage does not cancel a telegraphed enemy strike: repeated clicks cannot stunlock it.

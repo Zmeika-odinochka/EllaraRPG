@@ -61,6 +61,7 @@ func _ready() -> void:
 	toast_panel.hide()
 	state.save_finished.connect(on_saved)
 	state.save_failed.connect(on_save_failed)
+	state.notice.connect(queue_notice)
 	refresh()
 
 func refresh() -> void:
@@ -81,11 +82,11 @@ func show_toast(text: String, duration: float = 3.0) -> void:
 	toast_panel.visible = not world.dialogue.is_open and not world.character_panel.is_open and not world.busy
 
 func on_saved(slot: int, reason: String) -> void:
-	if reason == "transition": return
+	if reason in ["transition","purchase","equipment","book","quest","tracking","discovery"]: return
 	if reason == "reward" and toast_remaining > 0:
 		return # The reward notice already represents this saved event.
 	elif reason == "work":
-		show_toast("Работа выполнена")
+		queue_notice("Работа выполнена")
 	else:
 		show_toast("Сохранено · Слот %d" % slot, 2.5)
 
@@ -107,3 +108,9 @@ func _process(delta: float) -> void:
 			toast_panel.modulate.a = minf(1.0, toast_remaining / 0.35)
 	else:
 		toast_panel.hide()
+		if not notices.is_empty(): show_toast(notices.pop_front(),3.0)
+
+var notices: Array[String] = []
+func queue_notice(message: String) -> void:
+	if toast_remaining<=0: show_toast(message,3.0)
+	else: notices.append(message)

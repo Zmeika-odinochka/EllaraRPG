@@ -17,6 +17,9 @@ const QUESTS := {
 	},
 }
 const ITEMS := {
+	"book_observation": preload("res://scripts/progression_catalog.gd").BOOKS.book_observation,
+	"book_knots": preload("res://scripts/progression_catalog.gd").BOOKS.book_knots,
+	"book_blade": preload("res://scripts/progression_catalog.gd").BOOKS.book_blade,
 	"simple_dagger": preload("res://scripts/weapon_catalog.gd").DAGGER,
 	"watch_notes": {"name": "Записки дозорного", "description": "Найденные у старой дороги страницы. На схеме отмечена ниша в дозорном посту и знак с тремя лучами. Внизу приписка: «Свет погас, но стекло всё ещё тёплое»."},
 	"sorted_records": {"name": "Разобранные записи", "description": "Заказы и квитанции разложены. Покажи результат Мире для приёмки."},

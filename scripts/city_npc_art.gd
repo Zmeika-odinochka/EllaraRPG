@@ -14,6 +14,13 @@ func _draw() -> void:
 	if profile == "smith":
 		pixel(-5,-19,10,10,"514434")
 		pixel(-4,-25,8,3,"88775e")
+	if profile == "bookseller":
+		pixel(-7,-22,14,10,"72795c")
+		pixel(-7,-36,14,5,"8d8775")
+		pixel(-8,-31,3,9,"8d8775")
+		pixel(-5,-29,4,3,"4b5148")
+		pixel(2,-29,4,3,"4b5148")
+		pixel(-1,-28,3,1,"a9a384")
 	if seated:
 		pixel(-7,-7,14,5,"514b40")
 		pixel(-8,-2,6,3,"383b32")

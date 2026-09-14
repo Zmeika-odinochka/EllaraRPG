@@ -19,6 +19,9 @@ var marker: ColorRect
 var answer_buttons: Array[Button] = []
 var panel: PanelContainer
 var cancel_button: Button
+var success_zone: ColorRect
+var timing_half := 0.1
+var archive_help := false
 
 func _ready() -> void:
 	layer = 25
@@ -47,6 +50,7 @@ func _ready() -> void:
 	bar.size = Vector2(480, 30)
 	track.add_child(bar)
 	var zone := ColorRect.new()
+	success_zone = zone
 	zone.color = Color("82ab60")
 	zone.position = Vector2(192, 0)
 	zone.size = Vector2(96, 30)
@@ -85,6 +89,11 @@ func make_button(text: String) -> Button:
 	return b
 
 func open_game(id: String) -> void:
+	var state := get_node("/root/GameState")
+	timing_half = state.Progress.canopy_half(int(state.attributes.get("Координация",1)))
+	archive_help = int(state.attributes.get("Интеллект",1))>=state.Progress.ARCHIVE_HELP_LEVEL
+	success_zone.position.x = (0.5-timing_half)*480
+	success_zone.size.x = timing_half*960
 	activity = id
 	step = 0
 	cursor = 0.0
@@ -119,6 +128,12 @@ func open_game(id: String) -> void:
 			instruction.text = "Нажми пробел или кнопку, когда бегунок в зелёной зоне. Нужно 3 попадания."
 			names = ["Затянуть · Пробел"]
 			sequence = [["Крепление 1", 0], ["Крепление 2", 0], ["Крепление 3", 0]]
+	if id=="planks" and int(state.attributes.get("Сила",1))>=state.Progress.STRENGTH_BATCH_LEVEL:
+		sequence.pop_back()
+		instruction.text += " Силы хватает на более крупные связки: всего 4."
+	if id=="canopy":
+		instruction.text = "Лови зелёную зону: Пробел или кнопка. Три крепления."
+		feedback.text = "Координация %d · зона %d%%" % [int(state.attributes.get("Координация",1)),roundi(timing_half*200)]
 	for index in range(answer_buttons.size()):
 		answer_buttons[index].visible = index < names.size()
 		if index < names.size():
@@ -130,6 +145,8 @@ func open_game(id: String) -> void:
 
 func update_prompt() -> void:
 	prompt.text = "%d / %d · %s" % [step, sequence.size(), sequence[step][0]]
+	if activity=="archive" and archive_help:
+		feedback.text = "Пометка на полях: "+["Заказы","Оплата","Разрешения"][int(sequence[step][1])]
 
 func _process(delta: float) -> void:
 	if not is_open or activity != "canopy":
@@ -142,7 +159,7 @@ func _process(delta: float) -> void:
 func answer(index: int) -> void:
 	if not is_open or get_tree().paused:
 		return
-	var correct: bool = cursor >= 0.4 and cursor <= 0.6 if activity == "canopy" else index == int(sequence[step][1])
+	var correct: bool = absf(cursor-0.5)<=timing_half if activity == "canopy" else index == int(sequence[step][1])
 	if not correct:
 		feedback.text = "Попробуй ещё раз. Верные ответы повторять не нужно."
 		return

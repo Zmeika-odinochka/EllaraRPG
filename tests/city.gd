@@ -145,7 +145,7 @@ func run_checks() -> void:
 		if entry.npc=="astra": await capture("city-guild-table.png")
 		game.city.conversation.close()
 	# Every new city exit is physically reachable and loads its declared destination.
-	for scene in [City.SQUARE,City.MARKET,City.CRAFT,City.TEMPLE,City.GATES,City.ARMORY]:
+	for scene in [City.SQUARE,City.MARKET,City.CRAFT,City.TEMPLE,City.GATES,City.ARMORY,City.BOOKSHOP]:
 		for entry in City.actions(scene):
 			if not entry.has("scene"): continue
 			state.pending_spawn = Vector2.INF

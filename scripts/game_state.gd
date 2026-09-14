@@ -4,10 +4,17 @@ extends Node
 signal quest_changed
 signal save_finished(slot: int, reason: String)
 signal save_failed(message: String)
+signal notice(message: String)
 
 enum QuestStage { AVAILABLE, ACCEPTED, MET_CORVIN, WORK_DONE, APPROVED, COMPLETED }
 
-const SAVE_VERSION: int = 5
+const SAVE_VERSION: int = 6
+const Progress = preload("res://scripts/progression_catalog.gd")
+var attribute_xp: Dictionary = {}
+var attribute_thresholds: Dictionary = {}
+var credited_events: Array[String] = []
+var studied_books: Array[String] = []
+var skills: Array[String] = []
 const City = preload("res://scripts/city_catalog.gd")
 const Weapons = preload("res://scripts/weapon_catalog.gd")
 var equipped_weapon := ""
@@ -29,7 +36,7 @@ const SQUARE_SCENE := "res://scenes/square.tscn"
 const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
 const OUTSKIRTS_SCENE := "res://scenes/outskirts.tscn"
 const OUTPOST_SCENE := "res://scenes/outpost.tscn"
-const VALID_SCENES := [GUILD_SCENE, SQUARE_SCENE, OUTSKIRTS_SCENE, OUTPOST_SCENE, City.MARKET, City.CRAFT, City.TEMPLE, City.GATES, City.ARMORY]
+const VALID_SCENES := [GUILD_SCENE, SQUARE_SCENE, OUTSKIRTS_SCENE, OUTPOST_SCENE, City.MARKET, City.CRAFT, City.TEMPLE, City.GATES, City.ARMORY, City.BOOKSHOP]
 const WORK_STEPS := {
 	"planks": "Разобрать доски",
 	"goods": "Расставить товар",
@@ -49,6 +56,7 @@ var tracked_quest: String = ""
 
 
 func _ready() -> void:
+	reset_progression()
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().auto_accept_quit = false
 	for argument in OS.get_cmdline_user_args():
@@ -104,6 +112,7 @@ func reset_game() -> void:
 	discoveries.clear()
 	tracked_quest = ""
 	attributes = BASE_STATS.duplicate()
+	reset_progression()
 	inventory = {}
 	side_quests = {"archive": "available", "parcel": "available"}
 	npc_knowledge = {"mira": [], "corvin": []}
@@ -172,6 +181,7 @@ func finish_work(step_id: String) -> bool:
 	if quest_stage != QuestStage.MET_CORVIN or not WORK_STEPS.has(step_id) or step_id in completed_steps:
 		return false
 	completed_steps.append(step_id)
+	award_event("work:"+step_id)
 	if completed_steps.size() == WORK_STEPS.size():
 		quest_stage = QuestStage.WORK_DONE
 	quest_changed.emit()
@@ -282,6 +292,11 @@ func save_game(slot: int, scene_path: String = "", position: Vector2 = Vector2.I
 		"discoveries": discoveries.duplicate(),
 		"post_guard_defeated": post_guard_defeated,
 		"equipped_weapon": equipped_weapon,
+		"attribute_xp": attribute_xp.duplicate(),
+		"attribute_thresholds": attribute_thresholds.duplicate(),
+		"credited_events": credited_events.duplicate(),
+		"studied_books": studied_books.duplicate(),
+		"skills": skills.duplicate(),
 	}
 	var final_path := slot_path(slot)
 	var temp_path := final_path + ".tmp"
@@ -331,7 +346,7 @@ func read_slot(slot: int) -> Dictionary:
 
 
 func validate_data(data: Dictionary) -> bool:
-	if int(data.get("version", -1)) not in [1, 2, 3, 4, SAVE_VERSION]:
+	if int(data.get("version", -1)) not in [1, 2, 3, 4, 5, SAVE_VERSION]:
 		return false
 	if str(data.get("location_scene", "")) not in VALID_SCENES:
 		return false
@@ -363,6 +378,7 @@ func validate_data(data: Dictionary) -> bool:
 			var count = data.inventory[Weapons.DAGGER_ID]
 			if typeof(count) not in [TYPE_INT,TYPE_FLOAT] or float(count) != 1.0: return false
 		if weapon != "" and not data.inventory.has(weapon): return false
+	if int(data.version) >= 6 and not validate_progression(data): return false
 	return true
 
 
@@ -379,6 +395,7 @@ func apply_data(data: Dictionary) -> bool:
 	if tracked_quest != "fair" and tracked_quest not in Catalog.QUESTS:
 		tracked_quest = ""
 	attributes = data.get("attributes", BASE_STATS).duplicate(true)
+	for id in BASE_STATS: attributes[id] = int(attributes.get(id,BASE_STATS[id]))
 	inventory = data.get("inventory", {}).duplicate(true)
 	side_quests = data.get("side_quests", {"archive": "available", "parcel": "available"}).duplicate(true)
 	npc_knowledge = data.get("npc_knowledge", {"mira": [], "corvin": []}).duplicate(true)
@@ -392,6 +409,7 @@ func apply_data(data: Dictionary) -> bool:
 	play_seconds = float(data.play_seconds)
 	pending_spawn = Vector2(float(data.player_position[0]), float(data.player_position[1]))
 	transition_autosave_pending = false
+	load_progression(data)
 	quest_changed.emit()
 	return true
 
@@ -423,6 +441,7 @@ func finish_side_work(id: String) -> bool:
 		return false
 	side_quests[id] = "packed" if id == "parcel" else "ready"
 	inventory[Catalog.QUESTS[id].item] = 1
+	award_event("work:"+id)
 	quest_changed.emit()
 	autosave("work")
 	return true
@@ -539,6 +558,7 @@ func buy_dagger() -> bool:
 		inventory.erase(Weapons.DAGGER_ID)
 		return false
 	quest_changed.emit()
+	notice.emit("Получен простой кинжал")
 	return true
 
 func set_equipped_weapon(id: String) -> bool:
@@ -554,7 +574,7 @@ func set_equipped_weapon(id: String) -> bool:
 	return true
 
 func weapon_base_damage() -> int:
-	return Weapons.base_damage(equipped_weapon)
+	return Weapons.base_damage(equipped_weapon)+(Progress.BLADE_BONUS if equipped_weapon==Weapons.DAGGER_ID and "blade_basics" in skills else 0)
 
 
 func discover(id: String) -> bool:
@@ -564,11 +584,118 @@ func discover(id: String) -> bool:
 	if location.scene != definition.scene or location.position.distance_to(definition.at) > 38.0: return false
 	if id == "shortcut" and location.position.y >= 260: return false
 	discoveries.append(id)
+	award_event("discovery:"+id)
 	if definition.has("item"): inventory[definition.item] = int(inventory.get(definition.item, 0)) + 1
 	quest_changed.emit()
 	autosave("discovery")
 	return true
 
+
+func reset_progression() -> void:
+	attribute_xp.clear()
+	attribute_thresholds.clear()
+	credited_events.clear()
+	studied_books.clear()
+	skills.clear()
+	for id in BASE_STATS:
+		attribute_xp[id] = 0
+		attribute_thresholds[id] = Progress.threshold(int(attributes.get(id,BASE_STATS[id])),BASE_STATS[id])
+
+func award_event(id: String) -> bool:
+	if id not in Progress.EVENTS or id in credited_events: return false
+	credited_events.append(id)
+	grant_xp(Progress.EVENTS[id])
+	return true
+
+func grant_xp(rewards: Dictionary, announce: bool = true) -> void:
+	var gains: PackedStringArray = []
+	for id in rewards:
+		attribute_xp[id] = int(attribute_xp.get(id,0))+int(rewards[id])
+		var previous := int(attributes[id])
+		while attribute_xp[id] >= attribute_thresholds[id]:
+			attribute_xp[id] -= attribute_thresholds[id]
+			attributes[id] = int(attributes[id])+1
+			attribute_thresholds[id] = Progress.threshold(attributes[id],BASE_STATS[id])
+		gains.append("%s ↑ %d" % [id,int(attributes[id])] if attributes[id]>previous else "%s +%d XP" % [id,int(rewards[id])])
+	if announce: notice.emit(" · ".join(gains))
+
+func validate_progression(data: Dictionary) -> bool:
+	for field in ["attribute_xp","attribute_thresholds"]:
+		if typeof(data.get(field)) != TYPE_DICTIONARY: return false
+	for id in BASE_STATS:
+		for field in ["attributes","attribute_xp","attribute_thresholds"]:
+			var value = data[field].get(id)
+			if typeof(value) not in [TYPE_INT,TYPE_FLOAT] or not is_finite(float(value)) or float(value)!=floorf(float(value)): return false
+		if int(data.attributes[id])<BASE_STATS[id] or int(data.attribute_xp[id])<0 or int(data.attribute_thresholds[id])<=0: return false
+		if int(data.attribute_xp[id])>=int(data.attribute_thresholds[id]): return false
+	for field in ["credited_events","studied_books","skills"]:
+		if typeof(data.get(field)) != TYPE_ARRAY: return false
+		var seen := {}
+		for id in data[field]:
+			if typeof(id)!=TYPE_STRING or seen.has(id): return false
+			seen[id] = true
+			if field=="credited_events" and id not in Progress.EVENTS: return false
+			if field=="studied_books" and (id not in Progress.BOOKS or data.inventory.get(id,0)!=1): return false
+			if field=="skills" and id not in Progress.SKILLS: return false
+	for id in Progress.BOOKS:
+		if data.inventory.has(id) and data.inventory[id]!=1: return false
+		if id in data.studied_books and Progress.BOOKS[id].skill!="" and Progress.BOOKS[id].skill not in data.skills: return false
+	if "blade_basics" in data.skills and "book_blade" not in data.studied_books: return false
+	return true
+
+func load_progression(data: Dictionary) -> void:
+	reset_progression()
+	if int(data.version)>=6:
+		for id in BASE_STATS:
+			attribute_xp[id] = int(data.attribute_xp[id])
+			attribute_thresholds[id] = int(data.attribute_thresholds[id])
+		for id in data.credited_events: credited_events.append(id)
+		for id in data.studied_books: studied_books.append(id)
+		for id in data.skills: skills.append(id)
+	else:
+		# Old accomplishments stay accomplished: no retrospective XP or replay farming.
+		for id in completed_steps: credited_events.append("work:"+id)
+		for id in Catalog.QUESTS:
+			if side_quests.get(id,"available") in ["packed","ready","completed"]: credited_events.append("work:"+id)
+		if post_guard_defeated: credited_events.append("combat:post_guard")
+		if "road_cache" in discoveries: credited_events.append("discovery:road_cache")
+
+func buy_book(id: String) -> bool:
+	var location := current_location()
+	if get_tree().paused or id not in Progress.BOOKS or location.scene!=City.BOOKSHOP or location.position.distance_to(Vector2(384,222))>40: return false
+	var price := int(Progress.BOOKS[id].price)
+	if inventory.has(id) or personal_coins<price: return false
+	personal_coins -= price
+	inventory[id] = 1
+	if game_active and valid_slot(active_slot) and not autosave("purchase"):
+		personal_coins += price
+		inventory.erase(id)
+		return false
+	quest_changed.emit()
+	notice.emit("Книга в сумке: "+Progress.BOOKS[id].name)
+	return true
+
+func study_book(id: String) -> bool:
+	if get_tree().paused or id not in Progress.BOOKS or inventory.get(id,0)!=1 or id in studied_books: return false
+	var book: Dictionary = Progress.BOOKS[id]
+	if int(attributes.get("Интеллект",1))<book.intellect: return false
+	var before := [attributes.duplicate(),attribute_xp.duplicate(),attribute_thresholds.duplicate(),skills.duplicate()]
+	studied_books.append(id)
+	grant_xp(book.xp,false)
+	if book.skill!="" and book.skill not in skills: skills.append(book.skill)
+	if game_active and valid_slot(active_slot) and not autosave("book"):
+		studied_books.erase(id)
+		attributes = before[0]
+		attribute_xp = before[1]
+		attribute_thresholds = before[2]
+		skills.assign(before[3])
+		return false
+	quest_changed.emit()
+	notice.emit("Изучено: "+book.name)
+	for stat in book.xp:
+		if attributes[stat]>before[0][stat]: notice.emit("%s ↑ %d" % [stat,int(attributes[stat])])
+	if book.skill!="": notice.emit("Навык: "+Progress.SKILLS[book.skill].name)
+	return true
 
 func quest_summary(stage: int) -> String:
 	match stage:
