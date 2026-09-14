@@ -6,7 +6,7 @@ param(
 # No production saves are used. Each persistence test owns its temporary directory.
 $projectDirectory = Split-Path -Parent $PSScriptRoot
 $checks = @('guild_smoke', 'quest_flow', 'quest_completion', 'save_and_pause',
-            'quests_inventory', 'keyboard_input', 'ui_workflow', 'display_options')
+            'quests_inventory', 'keyboard_input', 'ui_workflow', 'display_options', 'exploration')
 if ($IncludeVisual) { $checks += 'character_animation' }
 $failedChecks = @()
 foreach ($checkName in $checks) {

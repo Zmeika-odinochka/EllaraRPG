@@ -19,6 +19,8 @@ var objective_label: Label
 var activity_label: Label
 var hud: CanvasLayer
 var pause_menu: CanvasLayer
+var inspection: CanvasLayer
+var exploration: Node2D
 var busy: bool = false
 var near_npc: bool = false
 var near_portal: bool = false
@@ -55,6 +57,11 @@ func _ready() -> void:
 	activity_game.finished.connect(_on_activity_finished)
 	pause_menu = PauseMenu.new()
 	add_child(pause_menu)
+	inspection = preload("res://scripts/inspection_panel.gd").new()
+	add_child(inspection)
+	inspection.closed.connect(_on_dialogue_closed)
+	exploration = preload("res://scripts/exploration_interactions.gd").new()
+	add_child(exploration)
 	state.quest_changed.connect(refresh_objective)
 	if state.transition_autosave_pending:
 		state.transition_autosave_pending = false
@@ -118,14 +125,14 @@ func npc_is_reachable() -> bool:
 func _process(_delta: float) -> void:
 	near_npc = npc_is_reachable()
 	near_portal = player.position.distance_to(portal_point) <= 27.0
-	var free: bool = not dialogue.is_open and not transitioning and not busy and not character_panel.is_open
+	var free: bool = can_manual_save()
 	prompt.visible = near_npc and free
 	portal_prompt.visible = near_portal and free
 	work_prompt.visible = near_guild_work() and free
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if transitioning or event.is_echo() or dialogue.is_open or busy or character_panel.is_open:
+	if event.is_echo() or not can_manual_save():
 		return
 	if event.is_action_pressed("inventory"):
 		open_character_panel("inventory")
@@ -139,6 +146,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func interaction_text() -> String:
+	if is_instance_valid(exploration):
+		var action: Dictionary = exploration.nearest_action()
+		if not action.is_empty(): return action.label
 	if near_guild_work(): return "Рабочее место"
 	if near_npc: return npc_name
 	if near_portal: return portal_label
@@ -147,6 +157,7 @@ func interaction_text() -> String:
 
 func interact() -> void:
 	if not can_manual_save() or get_tree().paused: return
+	if exploration.interact(): return
 	if near_guild_work(): open_character_panel("work")
 	elif near_npc:
 		player.set_controls_enabled(false)
@@ -155,13 +166,15 @@ func interact() -> void:
 
 
 func travel() -> void:
-	if transitioning or dialogue.is_open or busy or character_panel.is_open:
-		return
+	travel_to(portal_scene, portal_spawn)
+
+func travel_to(destination: String, spawn: Vector2) -> void:
+	if not can_manual_save() or get_tree().paused: return
 	transitioning = true
 	player.set_controls_enabled(false)
-	state.pending_spawn = portal_spawn
+	state.pending_spawn = spawn
 	state.transition_autosave_pending = true
-	var result: int = get_tree().change_scene_to_file(portal_scene)
+	var result: int = get_tree().change_scene_to_file(destination)
 	if result != OK:
 		state.pending_spawn = Vector2.INF
 		state.transition_autosave_pending = false
@@ -203,4 +216,4 @@ func _on_activity_finished(success: bool) -> void:
 
 
 func can_manual_save() -> bool:
-	return not transitioning and not busy and not dialogue.is_open and not character_panel.is_open
+	return not transitioning and not busy and not dialogue.is_open and not character_panel.is_open and (not is_instance_valid(inspection) or not inspection.is_open)

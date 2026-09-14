@@ -95,7 +95,7 @@ func on_save_failed(message: String) -> void:
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(world.character_panel): return
-	controls.visible = not world.dialogue.is_open and not world.character_panel.is_open and not world.busy
+	controls.visible = world.can_manual_save()
 	var action: String = world.interaction_text()
 	action_button.visible = not action.is_empty()
 	action_button.text = "E · " + action

@@ -7,7 +7,9 @@ signal save_failed(message: String)
 
 enum QuestStage { AVAILABLE, ACCEPTED, MET_CORVIN, WORK_DONE, APPROVED, COMPLETED }
 
-const SAVE_VERSION: int = 2
+const SAVE_VERSION: int = 3
+const Exploration = preload("res://scripts/exploration_catalog.gd")
+var discoveries: Array[String] = []
 const Catalog = preload("res://scripts/quest_catalog.gd")
 # Initial video-game balance, independent of the role-playing campaign.
 const BASE_STATS := {"Сила": 1, "Выносливость": 1, "Ловкость": 1, "Интеллект": 1, "Восприятие": 1, "Координация": 1, "Магия": 0, "Удача": 0}
@@ -21,7 +23,9 @@ const REWARD: int = 18
 const GUILD_SCENE := "res://scenes/guild.tscn"
 const SQUARE_SCENE := "res://scenes/square.tscn"
 const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
-const VALID_SCENES := [GUILD_SCENE, SQUARE_SCENE]
+const OUTSKIRTS_SCENE := "res://scenes/outskirts.tscn"
+const OUTPOST_SCENE := "res://scenes/outpost.tscn"
+const VALID_SCENES := [GUILD_SCENE, SQUARE_SCENE, OUTSKIRTS_SCENE, OUTPOST_SCENE]
 const WORK_STEPS := {
 	"planks": "Разобрать доски",
 	"goods": "Расставить товар",
@@ -91,6 +95,7 @@ func _notification(what: int) -> void:
 
 
 func reset_game() -> void:
+	discoveries.clear()
 	tracked_quest = ""
 	attributes = BASE_STATS.duplicate()
 	inventory = {}
@@ -268,6 +273,7 @@ func save_game(slot: int, scene_path: String = "", position: Vector2 = Vector2.I
 		"npc_knowledge": npc_knowledge.duplicate(true),
 		"work_trust": work_trust.duplicate(true),
 		"tracked_quest": tracked_quest,
+		"discoveries": discoveries.duplicate(),
 	}
 	var final_path := slot_path(slot)
 	var temp_path := final_path + ".tmp"
@@ -317,7 +323,7 @@ func read_slot(slot: int) -> Dictionary:
 
 
 func validate_data(data: Dictionary) -> bool:
-	if int(data.get("version", -1)) not in [1, SAVE_VERSION]:
+	if int(data.get("version", -1)) not in [1, 2, SAVE_VERSION]:
 		return false
 	if str(data.get("location_scene", "")) not in VALID_SCENES:
 		return false
@@ -329,19 +335,27 @@ func validate_data(data: Dictionary) -> bool:
 		return false
 	if int(data.get("personal_coins", -1)) < 0 or float(data.get("play_seconds", -1)) < 0:
 		return false
-	if int(data.version) == SAVE_VERSION:
+	if int(data.version) >= 2:
 		for field in ["attributes", "inventory", "side_quests", "npc_knowledge", "work_trust"]:
 			if typeof(data.get(field)) != TYPE_DICTIONARY:
 				return false
 		for id in Catalog.QUESTS:
 			if data.side_quests.get(id, "available") not in ["available", "active", "packed", "ready", "completed"]:
 				return false
+	if int(data.version) >= 3:
+		if typeof(data.get("discoveries")) != TYPE_ARRAY: return false
+		for id in data.discoveries:
+			if typeof(id) != TYPE_STRING or id not in Exploration.DISCOVERIES: return false
 	return true
 
 
 func apply_data(data: Dictionary) -> bool:
 	if not validate_data(data):
 		return false
+	discoveries.clear()
+	if int(data.version) >= 3:
+		for id in data.discoveries:
+			if id not in discoveries: discoveries.append(id)
 	tracked_quest = str(data.get("tracked_quest", ""))
 	if tracked_quest != "fair" and tracked_quest not in Catalog.QUESTS:
 		tracked_quest = ""
@@ -492,7 +506,20 @@ func most_recent_slot() -> int:
 
 
 func location_name(scene_path: String) -> String:
-	return "Центральная площадь" if scene_path == SQUARE_SCENE else "Гильдия"
+	return {GUILD_SCENE: "Гильдия", SQUARE_SCENE: "Центральная площадь", OUTSKIRTS_SCENE: "Старая дорога", OUTPOST_SCENE: "Дозорный пост"}.get(scene_path, "Неизвестное место")
+
+
+func discover(id: String) -> bool:
+	if id in discoveries or id not in Exploration.DISCOVERIES: return false
+	var definition: Dictionary = Exploration.DISCOVERIES[id]
+	var location := current_location()
+	if location.scene != definition.scene or location.position.distance_to(definition.at) > 38.0: return false
+	if id == "shortcut" and location.position.y >= 260: return false
+	discoveries.append(id)
+	if definition.has("item"): inventory[definition.item] = int(inventory.get(definition.item, 0)) + 1
+	quest_changed.emit()
+	autosave("discovery")
+	return true
 
 
 func quest_summary(stage: int) -> String:

@@ -154,7 +154,7 @@ func build_inventory() -> void:
 	left.custom_minimum_size.x = 240
 	left.add_theme_constant_override("separation", 8)
 	row.add_child(left)
-	left.add_child(UI.label("ПРЕДМЕТЫ ПОРУЧЕНИЙ", 11, UI.MUTED))
+	left.add_child(UI.label("ПРЕДМЕТЫ И НАХОДКИ", 11, UI.MUTED))
 	var grid := GridContainer.new()
 	grid.columns = 5
 	grid.add_theme_constant_override("h_separation", 5)
@@ -184,7 +184,7 @@ func build_inventory() -> void:
 		b.focus_entered.connect(show_item.bind(id))
 		b.mouse_entered.connect(show_item.bind(id))
 		item_buttons[id] = b
-	left.add_child(UI.label("Занято: %d\nПредметы хранятся до передачи адресату." % keys.size(), 11, UI.MUTED))
+	left.add_child(UI.label("Занято: %d\nВыбери предмет, чтобы рассмотреть." % keys.size(), 11, UI.MUTED))
 	make_details(row)
 	if not keys.is_empty():
 		show_item(selected_item if selected_item in keys else str(keys[0]))
@@ -199,7 +199,7 @@ func show_item(id: String) -> void:
 		return
 	selected_item = id
 	UI.clear(details)
-	details.add_child(UI.label("ПРЕДМЕТ ПОРУЧЕНИЯ", 11, UI.MUTED))
+	details.add_child(UI.label("НАХОДКА" if id == "watch_notes" else "ПРЕДМЕТ ПОРУЧЕНИЯ", 11, UI.MUTED))
 	details.add_child(UI.label(Catalog.ITEMS[id].name, 18, UI.GOLD))
 	info = UI.label(Catalog.ITEMS[id].description)
 	details.add_child(info)
