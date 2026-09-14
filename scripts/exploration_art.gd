@@ -154,6 +154,11 @@ func road_details() -> void:
 	for at in [Vector2i(658,21),Vector2i(690,113),Vector2i(499,12)]: rubble(at.x,at.y,true)
 
 func post_details() -> void:
+	# Damp stains collect by walls, while three scrapes point into the guard room.
+	for at in [Vector2(122,82),Vector2(452,-65),Vector2(495,179)]:
+		for i in range(5): rect(at.x+i*4,at.y+i%3*6,7,3,"354940")
+	for x in [218,224,230]:
+		draw_line(Vector2(x,244),Vector2(x+12,230),Color("85816a"),1)
 	# Foyer, transverse passage, guard room, collapsed north gallery, sealed chamber.
 	for y in range(176,232,8):
 		for x in range(128,304,32):

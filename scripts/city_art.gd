@@ -8,7 +8,8 @@ func box(r: Rect2, color: String) -> void: draw_rect(r,Color(color))
 func text(at: Vector2, words: String, color: String = "e1d0a4") -> void:
 	draw_string(ThemeDB.fallback_font,at,words,HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(color))
 func building(r: Rect2, roof: String, plaster: String) -> void:
-	box(Rect2(r.position+Vector2(7,9),r.size),"46483c")
+	draw_rect(Rect2(r.position+Vector2(7,12),r.size),Color(0.20,0.24,0.19,0.24))
+	if district==City.MARKET and r.position.x==64: roof = "64756b"
 	box(r,plaster)
 	box(Rect2(r.position+Vector2(0,r.size.y-18),Vector2(r.size.x,18)),"70664e")
 	for x in range(int(r.position.x),int(r.end.x),48):
@@ -22,6 +23,11 @@ func building(r: Rect2, roof: String, plaster: String) -> void:
 		for x in range(int(r.position.x)-5,int(r.end.x)+5,16):
 			box(Rect2(x,y,14,2),"5d5146")
 	box(Rect2(r.position+Vector2(-7,36),Vector2(r.size.x+14,6)),"493f33")
+	# A few shutters, repaired plaster patches and iron ties break the repeated facade.
+	for x in range(int(r.position.x)+18,int(r.end.x)-20,57):
+		box(Rect2(x,r.end.y-64,4,28),"76634a")
+		box(Rect2(x+4,r.end.y-61,9,2),"4c5140")
+		box(Rect2(x+6,r.end.y-22,12,2),"9b9278")
 func door(at: Vector2) -> void:
 	box(Rect2(at-Vector2(18,48),Vector2(36,48)),"514431")
 	box(Rect2(at-Vector2(14,44),Vector2(28,44)),"8b6a48")
@@ -62,6 +68,7 @@ func _draw() -> void:
 		if district==City.BOOKSHOP: draw_bookshop()
 		else: draw_armory()
 		return
+	ground_details()
 	for r in Layout.obstacles(district):
 		if district == City.GATES and r.position.y>=288:
 			box(r,"687763")
@@ -117,6 +124,24 @@ func _draw() -> void:
 			lamp(Vector2(311,317)); lamp(Vector2(457,317))
 			text(Vector2(330,310),"СТАРАЯ ДОРОГА")
 			shrub(Vector2(232,413),"64745c"); shrub(Vector2(551,409),"64745c")
+
+func ground_details() -> void:
+	# Low herbs and earth remain flat, passable ground; all solid props use Layout.
+	for y in range(26,454,16):
+		for x in range(26,742,16):
+			var edge := mini(mini(x-24,744-x),mini(y-24,456-y))
+			var n := posmod(x*17+y*31,97)
+			if edge<18+n%18:
+				box(Rect2(x,y,14,13),"788367" if district!=City.GATES else "68775f")
+				if n%3==0: box(Rect2(x+3,y+4,5,2),"919a75")
+	# Embedded drainage lines and irregular repairs give each open street a centre.
+	var lane_x := 640 if district==City.MARKET else 384
+	for y in range(36,448,23):
+		box(Rect2(lane_x-50,y,2,15),"858b74")
+		if y%3==0: box(Rect2(lane_x-46,y+7,16,1),"b4b19a")
+	for at in [Vector2(74,322),Vector2(296,285),Vector2(665,310)]:
+		for i in range(6):
+			box(Rect2(at+Vector2((i*17)%39,(i*11)%23),Vector2(9+i%3,5)),"969b81")
 
 func draw_bookshop() -> void:
 	for r in Layout.obstacles(district):

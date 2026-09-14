@@ -326,6 +326,8 @@ func save_game(slot: int, scene_path: String = "", position: Vector2 = Vector2.I
 	if FileAccess.file_exists(final_path + ".bak"):
 		DirAccess.remove_absolute(backup_absolute)
 	active_slot = slot
+	var audio := get_node_or_null("/root/Soundscape")
+	if audio and reason in ["purchase","book","work","discovery"]: audio.play({"purchase":"purchase","book":"item","work":"work","discovery":"item"}[reason])
 	save_finished.emit(slot, reason)
 	return true
 

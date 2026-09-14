@@ -185,6 +185,7 @@ func start_swing(target: Vector2) -> bool:
 	swing_weapon = state.equipped_weapon
 	swing_damage = state.weapon_base_damage()
 	strikes_started += 1
+	get_node("/root/Soundscape").play("swing")
 	return true
 
 func cancel_swing() -> void:
@@ -244,6 +245,7 @@ func resolve_swing() -> void:
 	damage_numbers.append({"amount": mini(enemy_health, swing_damage), "at": enemy.position, "age": 0.0})
 	enemy_health = maxi(0, enemy_health-swing_damage)
 	enemy_flash = 0.18
+	get_node("/root/Soundscape").play("hit")
 	engaged = true
 	if enemy_health <= 0:
 		phase = "cleared"
@@ -285,6 +287,7 @@ func tick_enemy(delta: float) -> void:
 				strike_origin = enemy.position
 				phase = "windup"
 				phase_time = WINDUP
+				get_node("/root/Soundscape").play("enemy")
 			else: move_enemy(player.position, delta)
 		"windup":
 			phase_time -= delta

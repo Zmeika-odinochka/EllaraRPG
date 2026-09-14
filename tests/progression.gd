@@ -82,6 +82,8 @@ func run_checks() -> void:
 	game.character_panel.switch_tab("hero")
 	await frames(3)
 	await capture("p3-hero.png")
+	for i in range(5): await key_press(KEY_PAGEDOWN)
+	await capture("p3-skills.png")
 	check(visible_text(game.character_panel).contains("XP") and visible_text(game.character_panel).contains("Основы клинка"),"Existing hero tab exposes progression and skills")
 	game.character_panel.close()
 	state.save_game(1)
@@ -90,6 +92,13 @@ func run_checks() -> void:
 	check(state.apply_data(saved) and state.studied_books.size()==3 and state.skills.size()==1,"Studied books and skills survive a save/load")
 	check(state.attribute_xp["Сила"]==5 and state.attributes["Координация"]==2 and state.weapon_base_damage()==7,"XP, attributes and equipped effect survive loading")
 	check(not state.study_book("book_blade"),"Reload cannot repeat skill reward")
+	state.pending_spawn = Vector2.INF
+	game = await load_world(state.OUTPOST_SCENE)
+	game.player.position = Vector2(244,208)
+	await frames(20)
+	check(game.combat.start_swing(game.combat.enemy.position),"Skilled attack starts in actual encounter")
+	await frames(12)
+	check(game.combat.enemy_health==11,"Book skill removes seven actual enemy health")
 	for version in [1,2,3,4,5]:
 		var old := saved.duplicate(true)
 		old.version = version

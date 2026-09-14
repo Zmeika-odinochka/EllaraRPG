@@ -21,6 +21,7 @@ func _ready() -> void:
 	state = get_node("/root/GameState")
 	get_tree().paused = false
 	state.game_active = false
+	get_node("/root/Soundscape").set_location("")
 	build_ui()
 	refresh_home()
 	UI.trap_focus(home)

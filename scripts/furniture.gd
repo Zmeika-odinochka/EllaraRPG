@@ -59,6 +59,13 @@ func _draw() -> void:
 			rect(-15, -37, 3, 4, "d0b184")
 			rect(10, -32, 19, 9, "d2ba82")
 			rect(13, -33, 12, 5, "b98047")
+			if position.x>500:
+				# Three places at the shared table, a folded cloth and a modest meal.
+				rect(-6,-43,14,27,"789080")
+				rect(-4,-42,2,24,"b1b69a")
+				for at in [Vector2(22,-39),Vector2(1,-24)]:
+					rect(at.x,at.y,6,5,"d2ba82")
+					rect(at.x+1,at.y,4,2,"69503a")
 		"bench":
 			rect(-30, -10, 5, 10, "4d362a")
 			rect(25, -10, 5, 10, "4d362a")

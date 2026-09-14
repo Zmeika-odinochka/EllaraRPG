@@ -9,9 +9,9 @@ func rect(x: float, y: float, w: float, h: float, color: String) -> void:
 
 func _draw() -> void:
 	rect(16, 24, 736, 436, "1f2528")
-	rect(24, 96, 720, 352, "815139")
+	rect(24, 96, 720, 352, "694c3b")
 	# Staggered oak floorboards; deterministic pattern, no random state.
-	var floor_colors := ["986546", "9f6e4a", "a37350", "936144", "a77751"]
+	var floor_colors := ["8c654b", "90694c", "936d50", "896148", "946f51"]
 	for row in range(22):
 		for col in range(10):
 			var x: int = 24 + col * 80 - (40 if row % 2 == 1 else 0)
@@ -19,7 +19,7 @@ func _draw() -> void:
 			var right: int = mini(x + 79, 744)
 			if right > left:
 				rect(left, 96 + row * 16, right - left, 15, floor_colors[(row * 3 + col * 7) % 5])
-				rect(left + 2, 97 + row * 16, maxi(0, right - left - 4), 1, "b78256")
+				rect(left + 2, 97 + row * 16, maxi(0, right - left - 4), 1, "a07a56")
 				if right - left > 32:
 					rect(left + 10, 104 + row * 16, 17, 1, "87573c")
 	# Back wall: plaster, wainscot, timber beams.
@@ -47,7 +47,7 @@ func _draw() -> void:
 	rect(323, 217, 126, 190, "634837")
 	rect(325, 217, 122, 185, "6e363b")
 	rect(329, 220, 114, 179, "aa7550")
-	rect(332, 223, 108, 173, "89464a")
+	rect(332, 223, 108, 173, "75494a")
 	for y in range(229, 393, 16):
 		rect(335, y, 3, 4, "c19765")
 		rect(434, y, 3, 4, "c19765")

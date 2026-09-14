@@ -40,6 +40,11 @@ var portal_spawn: Vector2
 func _ready() -> void:
 	state = get_node("/root/GameState")
 	configure_location()
+	get_node("/root/Soundscape").set_location(scene_file_path)
+	var ambience := preload("res://scripts/ambient_details.gd").new()
+	ambience.scene = scene_file_path
+	add_child(ambience)
+	move_child(ambience,actors.get_index())
 	if state.pending_spawn.is_finite():
 		player.position = state.pending_spawn
 		state.pending_spawn = Vector2.INF

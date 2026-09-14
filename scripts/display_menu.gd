@@ -33,12 +33,12 @@ func _ready() -> void:
 	panel.custom_minimum_size = Vector2(460, 310)
 	center.add_child(panel)
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 12)
+	column.add_theme_constant_override("separation", 8)
 	panel.add_child(column)
-	title = UI.label("ЭКРАН", 22, UI.GOLD)
+	title = UI.label("ЭКРАН И ЗВУК", 20, UI.GOLD)
 	column.add_child(title)
 	options = VBoxContainer.new()
-	options.add_theme_constant_override("separation", 9)
+	options.add_theme_constant_override("separation", 6)
 	column.add_child(options)
 	options.add_child(UI.label("Режим экрана", 12, UI.MUTED))
 	mode_choice = choice()
@@ -55,8 +55,31 @@ func _ready() -> void:
 		resolution_choice.add_item("%d × %d" % [value.x, value.y])
 	options.add_child(resolution_choice)
 	note = UI.label("", 11, UI.MUTED)
-	note.custom_minimum_size.y = 45
+	note.custom_minimum_size.y = 32
 	options.add_child(note)
+	var sound_row := HBoxContainer.new()
+	options.add_child(sound_row)
+	var sound_label := UI.label("Громкость",12,UI.MUTED)
+	sound_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	sound_label.custom_minimum_size.x = 90
+	sound_row.add_child(sound_label)
+	var volume := HSlider.new()
+	volume.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	volume.max_value = 100
+	volume.step = 5
+	volume.value = get_node("/root/Soundscape").volume*100
+	volume.custom_minimum_size.y = 24
+	for style_id in ["slider","grabber_area","grabber_area_highlight"]:
+		var track := UI.panel_style("263a38" if style_id=="slider" else "84916b","52675a",0)
+		track.content_margin_top = 2
+		track.content_margin_bottom = 2
+		volume.add_theme_stylebox_override(style_id,track)
+	var knob := Image.create(8,12,false,Image.FORMAT_RGBA8)
+	knob.fill(Color(UI.GOLD))
+	knob.fill_rect(Rect2i(2,2,4,8),Color(UI.PAPER))
+	for icon in ["grabber","grabber_highlight","grabber_disabled"]: volume.add_theme_icon_override(icon,ImageTexture.create_from_image(knob))
+	volume.value_changed.connect(func(value): get_node("/root/Soundscape").set_volume(value/100.0))
+	sound_row.add_child(volume)
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 8)
 	options.add_child(buttons)

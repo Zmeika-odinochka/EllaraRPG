@@ -10,6 +10,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 GameState="*res://scripts/game_state.gd"
+Soundscape="*res://scripts/soundscape.gd"
 DisplaySettings="*res://scripts/display_settings.gd"
 
 [display]

@@ -10,8 +10,8 @@ func rect(x: float, y: float, w: float, h: float, color: String) -> void:
 
 func _draw() -> void:
 	rect(0, 0, 768, 480, "5c7250")
-	rect(24, 24, 720, 432, "968e73")
-	var stones := ["a8a086", "a09880", "b0a78c", "a69e83"]
+	rect(24, 24, 720, 432, "98937d")
+	var stones := ["a8a189", "aaa28b", "ada48c", "a69e87"]
 	for row in range(27):
 		for col in range(31):
 			var x: int = 24 + col * 24 - (12 if row % 2 else 0)

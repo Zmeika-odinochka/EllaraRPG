@@ -20,6 +20,9 @@ static func panel_style(background: String, border: String, margin: int = 12) ->
 
 static func button(text: String, small: bool = false) -> Button:
 	var b := Button.new()
+	b.pressed.connect(func():
+		var audio := b.get_node_or_null("/root/Soundscape")
+		if audio: audio.play("ui"))
 	b.text = text
 	b.custom_minimum_size.y = 27 if small else 32
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
