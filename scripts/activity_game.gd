@@ -169,11 +169,12 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("cancel_work"):
 		cancel_game()
 		get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed:
-		var key: int = event.physical_keycode
-		if activity == "canopy" and key == KEY_SPACE:
-			answer(0)
-			get_viewport().set_input_as_handled()
-		elif activity != "canopy" and key >= KEY_1 and key <= KEY_3:
-			answer(key - KEY_1)
-			get_viewport().set_input_as_handled()
+	elif activity == "canopy" and event.is_action_pressed("work_timing"):
+		answer(0)
+		get_viewport().set_input_as_handled()
+	elif activity != "canopy":
+		for index in range(3):
+			if event.is_action_pressed("work_choice_%d" % (index + 1)):
+				answer(index)
+				get_viewport().set_input_as_handled()
+				return

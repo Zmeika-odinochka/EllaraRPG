@@ -50,7 +50,13 @@ func _ready() -> void:
 		"move_up": [KEY_W, KEY_UP], "move_down": [KEY_S, KEY_DOWN],
 		"interact": [KEY_E], "journal": [KEY_J], "cancel_work": [KEY_Q],
 		"pause": [KEY_ESCAPE], "inventory": [KEY_I],
+		"work_timing": [KEY_SPACE], "work_choice_1": [KEY_1],
+		"work_choice_2": [KEY_2], "work_choice_3": [KEY_3],
 	}
+	# Some Windows input sources send an unusable scan code but a valid logical key.
+	# Keep physical positions for any layout and logical EN/RU fallbacks for those sources.
+	var russian_keys := {KEY_A: "Ф", KEY_D: "В", KEY_W: "Ц", KEY_S: "Ы",
+		KEY_E: "У", KEY_J: "О", KEY_Q: "Й", KEY_I: "Ш"}
 	for action in bindings:
 		if not InputMap.has_action(action):
 			InputMap.add_action(action)
@@ -59,6 +65,16 @@ func _ready() -> void:
 			event.physical_keycode = key
 			if not InputMap.action_has_event(action, event):
 				InputMap.action_add_event(action, event)
+			add_logical_binding(action, key)
+			if russian_keys.has(key):
+				add_logical_binding(action, str(russian_keys[key]).unicode_at(0))
+
+
+func add_logical_binding(action: String, key: int) -> void:
+	var event := InputEventKey.new()
+	event.keycode = key
+	if not InputMap.action_has_event(action, event):
+		InputMap.action_add_event(action, event)
 
 
 func _process(delta: float) -> void:
