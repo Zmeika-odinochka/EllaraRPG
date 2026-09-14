@@ -27,6 +27,8 @@ func run_checks() -> void:
 	state.save_directory = "user://exploration_test_%d" % OS.get_process_id()
 	clear_test_saves()
 	state.reset_game()
+	# Geometry and discovery regression; combat has its own live encounter checks.
+	state.post_guard_defeated = true
 	state.active_slot = 1
 	state.game_active = true
 	game = await load_world(state.SQUARE_SCENE)

@@ -3,6 +3,7 @@ extends CharacterBody2D
 const SPEED: float = 105.0
 var controls_enabled: bool = true
 var facing: Vector2 = Vector2.DOWN
+var combat_movement_scale := 1.0
 @onready var appearance: Node2D = $Appearance
 
 
@@ -10,7 +11,7 @@ func _physics_process(_delta: float) -> void:
 	var direction := Vector2.ZERO
 	if controls_enabled:
 		direction = Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	velocity = direction * SPEED
+	velocity = direction * SPEED * combat_movement_scale
 	if not direction.is_zero_approx():
 		if absf(direction.x) > absf(direction.y):
 			facing = Vector2(signf(direction.x), 0)

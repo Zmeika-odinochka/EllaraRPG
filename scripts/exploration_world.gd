@@ -2,6 +2,7 @@ extends "res://scripts/world_location.gd"
 const Catalog = preload("res://scripts/exploration_catalog.gd")
 const Layout = preload("res://scripts/exploration_layout.gd")
 var gate: StaticBody2D
+var combat: Node2D
 
 func configure_location() -> void:
 	var outside := scene_file_path == Catalog.ROAD
@@ -31,6 +32,9 @@ func _ready() -> void:
 	canopy.foreground = true
 	canopy.z_index = 3
 	add_child(canopy)
+	if scene_file_path == Catalog.POST:
+		combat = preload("res://scripts/post_combat.gd").new()
+		add_child(combat)
 
 func build_walls() -> void:
 	var inside := scene_file_path == Catalog.POST

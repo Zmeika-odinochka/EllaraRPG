@@ -100,7 +100,7 @@ func build_ui() -> void:
 	help_panel = VBoxContainer.new()
 	help_panel.add_theme_constant_override("separation", 12)
 	container.add_child(help_panel)
-	var help := label("WASD / стрелки — движение\nE — разговор, переход, работа\nI — сумка · J — задания\nTab / стрелки — выбор в меню\nEnter — нажать выбранную кнопку\n1–3 / пробел — ответ в мини-игре\nQ — отменить работу\nEsc — пауза в любой момент", 14)
+	var help := label("WASD / стрелки — движение\nЛКМ — удар в сторону указателя (в посту)\nE — разговор, переход, работа\nI — сумка · J — задания\nTab / стрелки — выбор · Enter — подтвердить\n1–3 / пробел — ответ в мини-игре\nQ — отменить работу\nEsc — пауза в любой момент", 14)
 	help_panel.add_child(help)
 	var help_back := button("Назад")
 	help_back.pressed.connect(close_help)

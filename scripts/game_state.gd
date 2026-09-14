@@ -7,7 +7,8 @@ signal save_failed(message: String)
 
 enum QuestStage { AVAILABLE, ACCEPTED, MET_CORVIN, WORK_DONE, APPROVED, COMPLETED }
 
-const SAVE_VERSION: int = 3
+const SAVE_VERSION: int = 4
+var post_guard_defeated := false
 const Exploration = preload("res://scripts/exploration_catalog.gd")
 var discoveries: Array[String] = []
 const Catalog = preload("res://scripts/quest_catalog.gd")
@@ -95,6 +96,7 @@ func _notification(what: int) -> void:
 
 
 func reset_game() -> void:
+	post_guard_defeated = false
 	discoveries.clear()
 	tracked_quest = ""
 	attributes = BASE_STATS.duplicate()
@@ -274,6 +276,7 @@ func save_game(slot: int, scene_path: String = "", position: Vector2 = Vector2.I
 		"work_trust": work_trust.duplicate(true),
 		"tracked_quest": tracked_quest,
 		"discoveries": discoveries.duplicate(),
+		"post_guard_defeated": post_guard_defeated,
 	}
 	var final_path := slot_path(slot)
 	var temp_path := final_path + ".tmp"
@@ -323,7 +326,7 @@ func read_slot(slot: int) -> Dictionary:
 
 
 func validate_data(data: Dictionary) -> bool:
-	if int(data.get("version", -1)) not in [1, 2, SAVE_VERSION]:
+	if int(data.get("version", -1)) not in [1, 2, 3, SAVE_VERSION]:
 		return false
 	if str(data.get("location_scene", "")) not in VALID_SCENES:
 		return false
@@ -346,12 +349,15 @@ func validate_data(data: Dictionary) -> bool:
 		if typeof(data.get("discoveries")) != TYPE_ARRAY: return false
 		for id in data.discoveries:
 			if typeof(id) != TYPE_STRING or id not in Exploration.DISCOVERIES: return false
+	if int(data.version) >= 4 and typeof(data.get("post_guard_defeated")) != TYPE_BOOL:
+		return false
 	return true
 
 
 func apply_data(data: Dictionary) -> bool:
 	if not validate_data(data):
 		return false
+	post_guard_defeated = data.post_guard_defeated if int(data.version) >= 4 else false
 	discoveries.clear()
 	if int(data.version) >= 3:
 		for id in data.discoveries:
