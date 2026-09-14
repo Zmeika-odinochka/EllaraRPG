@@ -1,131 +1,201 @@
 @tool
 extends Node2D
+const Layout = preload("res://scripts/exploration_layout.gd")
 @export var interior := false
+@export var foreground := false
 var discoveries: Array[String] = []
 
-func rect(x: float, y: float, w: float, h: float, color: String) -> void:
-	draw_rect(Rect2(x, y, w, h), Color(color))
+func rect(x: float,y: float,w: float,h: float,color: String) -> void:
+	draw_rect(Rect2(x,y,w,h),Color(color))
 
-func stone_wall(x: int, y: int, w: int, h: int) -> void:
-	rect(x, y, w, h, "34403e")
-	for row in range(h / 12):
-		for col in range(w / 20):
-			rect(x + col * 20 + 1, y + row * 12 + 1, 18, 9, "636d5c" if (row + col) % 3 else "747b63")
-	rect(x, y, w, 3, "929580")
-	rect(x, y + h, w, 7, "253932")
+func hash_at(x: int,y: int) -> int:
+	return posmod(x*73+y*137,997)
 
-func tree(x: int, y: int) -> void:
-	rect(x - 17, y - 8, 39, 13, "24392e")
-	rect(x - 4, y - 36, 8, 35, "62523b")
-	for tier in range(3):
-		var span := 25 - tier * 6
-		var top := y - 32 - tier * 16
-		rect(x - span, top, span * 2, 17, "284838")
-		rect(x - span + 3, top, span * 2 - 7, 4, "4d6b49")
-		rect(x - span + 7, top - 5, span * 2 - 14, 8, "375c41")
-	rect(x - 4, y - 78, 8, 9, "607750")
+func pine(x: int,y: int,shade: int) -> void:
+	if not foreground:
+		rect(x-13,y-4,29,9,"182b27")
+		rect(x-4,y-30,8,31,"514b3b")
+		return
+	for i in range(4):
+		var span := 27-i*5
+		var top := y-28-i*13
+		rect(x-span,top,span*2,15,"203a32" if shade%2 else "293f35")
+		rect(x-span+5,top-5,span*2-10,12,"304a3c")
+		rect(x-span+7,top-5,span*2-14,3,"425644")
+	rect(x-3,y-77,6,8,"53624b")
 
-func lantern(x: int, y: int) -> void:
-	rect(x - 8, y - 10, 16, 18, "776a43")
-	rect(x - 5, y - 7, 10, 12, "bb9a56")
-	rect(x - 2, y - 5, 4, 8, "ead395")
-	rect(x - 7, y - 10, 14, 3, "3d4238")
+func rubble(x: int,y: int,large: bool = false) -> void:
+	var w := 34 if large else 13
+	var h := 23 if large else 8
+	rect(x,y,w,h,"242f2d")
+	rect(x+2,y-4,w-4,h,"505953")
+	rect(x+5,y-7,w-11,5,"73786a")
+	rect(x+3,y+3,w-7,2,"3c4742")
+
+func lamp(x: int,y: int,lit: bool = true) -> void:
+	if lit:
+		for radius in [32,24,16]:
+			draw_rect(Rect2(x-radius,y-radius,radius*2,radius*2),Color(0.66,0.48,0.2,0.025))
+	rect(x-5,y-9,10,17,"242d29")
+	rect(x-3,y-6,6,10,"c1a26d" if lit else "54594f")
+	if lit: rect(x-1,y-4,2,6,"ecd8a5")
+	rect(x-7,y-10,14,3,"5f5b47")
 
 func _draw() -> void:
-	if interior: draw_post()
-	else: draw_road()
-
-func draw_road() -> void:
-	rect(0, 0, 768, 480, "253b32")
-	rect(24, 24, 720, 432, "445940")
-	for i in range(450):
-		var x := 24 + (i * 137) % 714
-		var y := 28 + (i * 83) % 420
-		rect(x, y, 3, 2, "66714b" if i % 3 else "344c38")
-	# Wide west approach; the closed gate connects the return trail to the post.
-	for path in [Rect2(70, 344, 520, 90), Rect2(120, 168, 76, 228), Rect2(136, 166, 470, 69), Rect2(124, 98, 67, 114), Rect2(64, 102, 112, 42), Rect2(529, 217, 62, 181)]:
-		draw_rect(path, Color("77735a"))
-		draw_rect(path.grow(-7), Color("89806a"))
-	for i in range(66):
-		var x := 135 + (i * 43) % 48
-		var y := 174 + (i * 19) % 231
-		rect(x, y, 4, 2, "ada087")
-	for x in range(202, 504, 31):
-		rect(x, 195 + x % 9, 6, 2, "ada087")
-	stone_wall(220, 260, 312, 24)
-	stone_wall(588, 260, 136, 24)
-	# The destination is visible from the approach: broken roof, warm doorway.
-	rect(486, 47, 226, 133, "253830")
-	stone_wall(496, 48, 200, 120)
-	rect(487, 36, 216, 48, "4e5348")
-	for y in range(36, 78, 8):
-		for x in range(490, 701, 16):
-			if x > 644 and y < 57: continue
-			rect(x, y, 14, 6, "676858" if (x + y) % 3 else "787968")
-	rect(538, 123, 44, 48, "273a35")
-	rect(543, 129, 34, 42, "17292a")
-	rect(539, 169, 44, 8, "aaa186")
-	lantern(592, 140)
-	rect(621, 99, 38, 34, "253632")
-	for x in range(627, 660, 10): rect(x, 101, 3, 29, "858a71")
-	# Gate visibly moves aside once the player opens the latch from the north.
-	for x in [529, 585]: rect(x, 247, 5, 41, "a39775")
-	if "shortcut" not in discoveries:
-		for x in range(535, 585, 9): rect(x, 254, 5, 29, "5e5642")
-		rect(532, 265, 56, 5, "aba082")
-		rect(541, 258, 34, 3, "b4a272")
+	if foreground:
+		if not interior: vegetation()
+		return
+	var area := Layout.bounds(interior)
+	draw_rect(area,Color("182322" if interior else "293c32"))
+	for y in range(int(area.position.y),int(area.end.y),16):
+		for x in range(int(area.position.x),int(area.end.x),16):
+			var open := Layout.open_ground(Vector2(x+8,y+8),interior)
+			var n := hash_at(x,y)
+			if open:
+				if interior:
+					var tone := "6e6856" if y>312 else ("4b514b" if y<80 else "5b6054")
+					rect(x,y,16,16,"303a35")
+					rect(x+1,y+1,14,14,tone)
+					if n%5==0: rect(x+5,y+7,8,1,"3d4740")
+				else:
+					var tones := ["746e57","7d765e","6d6a54"] if y>300 else ["555d4e","5a6252","606553"]
+					rect(x,y,16,16,tones[n%3])
+					if n%4==0: rect(x+4,y+10,4,2,"8b8970")
+			else:
+				if interior:
+					rect(x,y,16,16,"1e2b28")
+					if Layout.open_ground(Vector2(x+8,y+24),true):
+						rect(x,y-15,16,31,"35433e")
+						rect(x+1,y-14,14,12,"667065")
+						rect(x+1,y+1,14,12,"4e5d52")
+						rect(x,y-16,16,3,"88907b")
+					if Layout.open_ground(Vector2(x+24,y+8),true):
+						rect(x+5,y,11,16,"526154")
+						rect(x+13,y,3,16,"82907c")
+					if Layout.open_ground(Vector2(x-8,y+8),true):
+						rect(x,y,11,16,"42534a")
+						rect(x,y,3,16,"6d7d6c")
+					if Layout.open_ground(Vector2(x+8,y-8),true):
+						rect(x,y,16,9,"405147")
+						rect(x,y,16,3,"71826e")
+				else:
+					rect(x,y,16,16,["2c4034","304237","344639"][n%3])
+					if n%7==0: rect(x+3,y+5,4,2,"4e6047")
+	if interior: post_details()
 	else:
-		rect(590, 250, 30, 5, "aba082")
-	for at in [Vector2i(54, 71), Vector2i(97, 71), Vector2i(274, 110), Vector2i(316, 109), Vector2i(58, 300), Vector2i(689, 408), Vector2i(718, 352), Vector2i(45, 207), Vector2i(367, 75), Vector2i(440, 69), Vector2i(273, 327)]: tree(at.x, at.y)
-	# A pale sheet beside exposed roots draws attention to the optional branch.
-	rect(70, 96, 39, 9, "514b36")
-	rect(82, 95, 20, 13, "856343")
-	rect(84, 94, 16, 4, "ae8e59")
-	if "road_cache" not in discoveries:
-		rect(89, 97, 8, 7, "e4d3a0")
-		rect(91, 98, 4, 1, "897652")
-	# Return to town, with a distinct stone threshold.
-	for x in range(68, 129, 15): rect(x, 432, 13, 10, "b1a78e")
-	rect(38, 370, 5, 42, "70583d")
-	rect(24, 369, 40, 14, "a18c60")
-	rect(27, 375, 28, 2, "4e503b")
+		vegetation()
+		road_details()
 
-func draw_post() -> void:
-	rect(0, 0, 768, 480, "17282a")
-	rect(72, 76, 624, 380, "4e5147")
-	for row in range(18):
-		for col in range(26):
-			rect(74 + col * 24, 80 + row * 20, 22, 18, "626558" if (row * 3 + col) % 4 else "6d6e5d")
-	stone_wall(24, 24, 720, 48)
-	stone_wall(24, 72, 40, 384)
-	stone_wall(704, 72, 40, 384)
-	# Old cots and damp crates frame an open, readable centre.
-	for y in [108, 139]:
-		rect(80, y, 92, 24, "383e37")
-		rect(84, y + 2, 84, 18, "7f7960")
-		rect(86, y + 3, 18, 14, "ada28a")
-	rect(200, 138, 86, 45, "353b32")
-	rect(206, 133, 76, 40, "8a7350")
-	rect(209, 135, 70, 4, "b19a6a")
-	rect(229, 142, 28, 19, "dbcea4")
-	rect(242, 142, 2, 19, "81745b")
-	for y in range(146, 159, 4):
-		rect(232, y, 7, 1, "968667")
-		rect(247, y, 7, 1, "968667")
-	lantern(290, 119)
-	for x in [480, 520]:
-		rect(x, 259, 35, 43, "3e463b")
-		rect(x + 2, 258, 30, 34, "79694a")
-		rect(x + 2, 270, 30, 4, "4d4f3d")
-	# Sealed niche: local mystery, no claim of a currently implemented ability.
-	stone_wall(530, 93, 140, 48)
-	rect(560, 95, 82, 42, "293f3d")
-	rect(568, 102, 66, 28, "4f716a")
-	rect(579, 108, 43, 15, "779a7d")
-	rect(598, 102, 4, 25, "d5ddad")
-	rect(582, 117, 35, 3, "d5ddad")
-	for i in range(15): rect(84 + (i * 47) % 590, 211 + (i * 73) % 198, 12, 2, "343f38")
-	# Entry path is left clear, regardless of quest progress.
-	for y in range(353, 456, 22): rect(364, y, 40, 18, "99927a")
-	lantern(335, 410)
-	lantern(433, 410)
+func vegetation() -> void:
+	for y in range(-360,448,48):
+		for x in range(-472,728,48):
+			var n := hash_at(x,y)
+			var at := Vector2(x+n%13,y+n%17)
+			# Canopies conceal adjacent ground without covering the travelled centre.
+			var clear := true
+			for offset in [Vector2.ZERO,Vector2(-24,-32),Vector2(24,-32),Vector2(0,-64),Vector2(0,16)]:
+				if Layout.open_ground(at+offset,false): clear = false
+			if Rect2(460,0,280,224).has_point(at): clear = false
+			if clear: pine(int(at.x),int(at.y),n)
+
+func road_details() -> void:
+	# Safety fades: old paving and the last maintained light at the city threshold.
+	for y in range(394,446,13):
+		for x in range(78,118,13): rect(x,y,11,10,"a69b80")
+	lamp(133,415)
+	rect(147,394,4,31,"6f6047")
+	rect(135,394,27,10,"9b8b68")
+	# Wet gullies and broken rock faces close long views around the bends.
+	for at in [Vector2i(-94,194),Vector2i(-256,121),Vector2i(-369,-82),Vector2i(-270,-132),Vector2i(125,-64),Vector2i(355,24),Vector2i(498,302),Vector2i(302,314)]:
+		for i in range(4): rubble(at.x+i*13,at.y-(i%2)*11,true)
+	for i in range(30):
+		var x := -310+i*12
+		var y := -280+(i%5)*3
+		rect(x,y,14,9,"233735")
+		rect(x+2,y+2,9,1,"557169")
+	# A snagged strip of cloth hints at the optional track; no quest marker.
+	rect(-7,-114,4,23,"5a5843")
+	rect(-9,-112,9,5,"a49879")
+	rect(-8,-107,4,8,"8c866a")
+	# Abandoned rest: uprooted trunk, broken cart wheel, cold fire, torn bedding.
+	for i in range(6): rect(25+i*8,71+i*3,14,9,"564c39")
+	rect(70,91,43,10,"4c4635")
+	rect(72,94,36,3,"8b7954")
+	draw_arc(Vector2(119,77),11,0,TAU,16,Color("8e805c"),2)
+	rect(109,76,20,2,"665c44")
+	rect(119,67,2,20,"665c44")
+	for at in [Vector2i(44,124),Vector2i(54,120),Vector2i(60,129),Vector2i(48,134)]: rubble(at.x,at.y)
+	rect(48,127,12,6,"242b27")
+	rect(105,140,25,9,"606e5b")
+	rect(108,141,17,2,"88917b")
+	rect(82,95,20,13,"775c42")
+	if "road_cache" not in discoveries: rect(89,96,8,7,"d6c79e")
+	# Gate uses the original position and persistent state; cliffs close its sides.
+	for x in [524,584]:
+		rect(x,244,8,44,"5a6657")
+		rect(x-2,242,12,5,"93957b")
+	if "shortcut" not in discoveries:
+		for x in range(535,585,9): rect(x,254,5,29,"544f3d")
+		rect(532,265,56,5,"998e70")
+	else: rect(590,250,30,5,"998e70")
+	# Only the final bend reveals the doorway and ruined roof.
+	rect(490,36,216,142,"29342f")
+	for y in range(48,172,16):
+		for x in range(496,696,24):
+			rect(x,y,22,14,"637064" if (x+y)%3 else "535f54")
+	for y in range(30,84,9):
+		for x in range(484,708,17):
+			if x>635 and y<58: continue
+			rect(x,y,15,7,"515a4f" if (x+y)%2 else "69705f")
+	rect(538,123,44,48,"28382f")
+	rect(543,128,34,43,"172623")
+	rect(539,170,44,7,"93917a")
+	lamp(592,142,false)
+	for at in [Vector2i(658,21),Vector2i(690,113),Vector2i(499,12)]: rubble(at.x,at.y,true)
+
+func post_details() -> void:
+	# Foyer, transverse passage, guard room, collapsed north gallery, sealed chamber.
+	for y in range(176,232,8):
+		for x in range(128,304,32):
+			rect(x,y,30,6,"716d53" if (x+y)%3 else "625f4b")
+	for at in [Vector2i(358,323),Vector2i(410,323),Vector2i(115,235),Vector2i(164,235)]:
+		rect(at.x,at.y,8,19,"6f6950")
+		rect(at.x+2,at.y,2,19,"999075")
+	for y in range(362,447,17): rect(369,y,31,13,"968d73")
+	lamp(346,391)
+	lamp(433,375,false)
+	rect(326,353,18,25,"61583f")
+	rect(326,363,18,3,"343c30")
+	for y in range(108,156,22):
+		rect(115,y,13,18,"726e57")
+		rect(116,y+2,9,4,"a1967d")
+	rect(206,135,76,42,"4a4837")
+	rect(209,137,70,29,"877653")
+	rect(228,142,29,18,"c7ba92")
+	rect(242,142,2,18,"756d52")
+	for y in range(146,158,4):
+		rect(231,y,8,1,"877c5a")
+		rect(247,y,7,1,"877c5a")
+	lamp(278,119,false)
+	# A barred view from the entrance-side passage suggests an unreachable room.
+	rect(522,229,158,90,"253c34")
+	for y in range(239,307,16):
+		for x in range(536,669,16): rect(x,y,14,14,"3e5044")
+	# Rubble fills the inaccessible gallery; its glow is visible through iron bars.
+	for at in [Vector2i(551,238),Vector2i(590,262),Vector2i(635,240),Vector2i(566,289)]: rubble(at.x,at.y,true)
+	rect(516,241,17,75,"687763")
+	rect(518,249,12,55,"172925")
+	for y in range(252,304,10): rect(519,y,11,3,"8a9984")
+	rect(531,252,3,50,"687c65")
+	rect(643,273,10,17,"819778")
+	# Breaks in the north gallery, damp trail and fallen lintels.
+	for at in [Vector2i(190,48),Vector2i(270,-139),Vector2i(359,-137),Vector2i(491,-26)]:
+		rubble(at.x,at.y,true)
+		rubble(at.x+20,at.y+11)
+	for x in range(325,427,16): rect(x,-91+(x%5),10,3,"314b45")
+	# Existing magical detail is quiet, local and still mechanically sealed.
+	rect(565,109,68,29,"263e38")
+	rect(572,112,54,22,"4b6a5d")
+	rect(583,116,33,13,"7f9877")
+	rect(598,111,3,22,"c3c7a0")
+	rect(584,124,30,3,"c3c7a0")

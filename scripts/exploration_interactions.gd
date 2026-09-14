@@ -46,7 +46,7 @@ func interact() -> bool:
 		return true
 	world.player.set_controls_enabled(false)
 	if action.has("blocked_gate"):
-		world.inspection.open("Калитка заперта", "Засов с другой стороны. Западная тропа огибает стену и ведёт к посту — оттуда получится подобраться к калитке.")
+		world.inspection.open("Калитка заперта", "Засов с другой стороны. За ржавыми прутьями тропа поднимается к каменному строению. Между скалами с запада ещё можно пройти.")
 		return true
 	var id: String = action.id
 	var definition: Dictionary = Catalog.DISCOVERIES[id]
