@@ -18,10 +18,9 @@ func pixel(x: float, y: float, w: float, h: float, color: String) -> void:
 
 
 func _draw() -> void:
-	var bob: int = 1 if walking and sin(step_time * 18.0) > 0 else 0
 	var stride: int = int(signf(sin(step_time * 18.0))) * 2 if walking else 0
 	draw_rect(Rect2(-10, -3, 20, 4), Color(0.1, 0.08, 0.07, 0.25))
-	draw_set_transform(Vector2(0, -bob))
+	# Keep the head and torso anchored; only the limbs move during a step.
 	# Boots, trousers, tunic, belt, hands, then the head.
 	pixel(-6, -7 + stride, 5, 7, "342b2b")
 	pixel(1, -7 - stride, 5, 7, "342b2b")
@@ -57,4 +56,3 @@ func _draw() -> void:
 		pixel(-7, -34, 14, 2, "9fc57a")
 		pixel(6, -35, 4, 4, "699d59")
 		pixel(7, -31, 2, 5, "9fc57a")
-	draw_set_transform(Vector2.ZERO)
